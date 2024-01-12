@@ -9,71 +9,84 @@ from torch.utils.data import DataLoader
 
 from transient_maker import TransientMaker
 from Datasets import FPC_Dataset
-from AblationStudyModels import realIn_realConv
+from AblationStudyModels import realIn_realConv, compIn_realConv, compIn_compConv
 
 ########################################################################################################################
 # Set-up Device and Hyperparameters
 ########################################################################################################################
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-dataType = "Real"           #"Comp"
-waterType = "Plus"          #"Inv"  "Mix"   "InvMix"
-convType = "Real"           #"Comp"
-netType = "Freq"            #"Phase"
-snrType = "10"              #"5"    "2.5"
-run_name = f"{dataType}Data_Water{waterType}_{convType}Convs_SNR{snrType}_{netType}Network"
 
-batch_size, learn_r = 1, 0.001
-nmb_epochs = 5    #200
+inputType = "R"              #"C"
+waterType = "Pos"            #"Neg"  "Mix"
+convType = "R"               #"C"
+netType = "Freq"             #"Phase"
+snrType = "10"               #"5"    "2.5"
+dataType = "Sim"
+run_name = f"{netType}_{dataType}{waterType}{snrType}_{inputType}{convType}"
+
+batch_size, learn_r = 16, 0.0001
+nmb_epochs = 10    #200
 
 ########################################################################################################################
 # Simulate Data (train, val and test)
 ########################################################################################################################
 transient_count = 160
-groundTruthNumber = 0   # for temp testing - use for loop later
-ppm_location ="C:/Users/Hanna B/PycharmProjects/FPC_summer2023/Development/ppm_2048.csv"
-time_location = "C:/Users/Hanna B/PycharmProjects/FPC_summer2023/Development/t_2048.csv"
+total_gts = 250
+num_spec_points = 2048
+phaseLabels_dev, freqLabels_dev = np.zeros(shape=(2, 1, transient_count*total_gts)), np.zeros(shape=(2, 1, transient_count*total_gts))
+on_freqCorr_specs_dev, off_freqCorr_specs_dev = np.zeros(shape=(1, num_spec_points, transient_count*total_gts), dtype=complex), np.zeros(shape=(1, num_spec_points, transient_count*total_gts), dtype=complex)
+on_all_specs_dev, off_all_specs_dev = np.zeros(shape=(1, num_spec_points, transient_count*total_gts), dtype=complex), np.zeros(shape=(1, num_spec_points, transient_count*total_gts), dtype=complex)
+
+ppm_location ="C:/Users/Hanna B/PycharmProjects/FPC_2024/Development/ppm_2048.csv"
+time_location = "C:/Users/Hanna B/PycharmProjects/FPC_2024/Development/t_2048.csv"
 
 #############################
 # Simulate Train and Val Data
 #############################
 # data locations
-# ON_fid_dev_gt_location ="C:/Users/Hanna B/PycharmProjects/FPC_summer2023/Development/WaterPos/fidsON_WP_GABAPlus_DevSet.csv"
-# OFF_fid_dev_gt_location ="C:/Users/Hanna B/PycharmProjects/FPC_summer2023/Development/WaterPos/fidsOFF_WP_GABAPlus_DevSet.csv"
+ON_fid_dev_gt_location ="C:/Users/Hanna B/PycharmProjects/FPC_2024/Test/noWater/fidsON_July2022.csv"
+OFF_fid_dev_gt_location ="C:/Users/Hanna B/PycharmProjects/FPC_2024/Test/noWater/fidsOFF_July2022.csv"
 
-ON_fid_dev_gt_location ="C:/Users/Hanna B/PycharmProjects/FPC_summer2023/Test/noWater/fidsON_July2022.csv"
-OFF_fid_dev_gt_location ="C:/Users/Hanna B/PycharmProjects/FPC_summer2023/Test/noWater/fidsOFF_July2022.csv"
+for groundTruthNumber in range(0, total_gts):
+    # create transient object
+    noisyTransients = TransientMaker(groundTruthNumber, ON_fid_dev_gt_location, OFF_fid_dev_gt_location, ppm_location, time_location, transient_count=transient_count)
 
-# add amplitude noise, and frequency and phase shifts
-noisyTransients = TransientMaker(groundTruthNumber, ON_fid_dev_gt_location, OFF_fid_dev_gt_location, ppm_location, time_location, transient_count=transient_count)
-ppm = noisyTransients.ppm
-normNoise = np.random.uniform(2, 2.5, size=1)   #SNR 10
-# normNoise = np.random.uniform(4, 4.5, size=1)   #SNR 5
-# normNoise = np.random.uniform(9.5, 10, size=1)   #SNR 2.5
+    # add amplitude noise, and frequency and phase shifts
+    normNoise = np.random.uniform(2, 2.5, size=1)   #SNR 10
+    # normNoise = np.random.uniform(4, 4.5, size=1)   #SNR 5
+    # normNoise = np.random.uniform(9.5, 10, size=1)   #SNR 2.5
+    noisyTransients.add_time_domain_noise(noise_level=normNoise)
 
-noisyTransients.add_time_domain_noise(noise_level=normNoise)
-temp_on, temp_off = noisyTransients.get_specs()
-diff_temp = temp_on - temp_off
-mean_diff_temp = diff_temp.mean(axis=2).flatten()
+    # obtain the phase labels and 'frequency corrected' spectra
+    phaseLabels_dev[:, :, (groundTruthNumber*transient_count):(groundTruthNumber*transient_count+transient_count)] = noisyTransients.add_phase_shift_random(phase_var=90)            # shape is (2, 1, 160)
+    on_freqCorr_specs_dev[0, :, (groundTruthNumber*transient_count):(groundTruthNumber*transient_count+transient_count)],\
+    off_freqCorr_specs_dev[0, :, (groundTruthNumber*transient_count):(groundTruthNumber*transient_count+transient_count)] = noisyTransients.get_specs()       # shape is (1, 2048, 160)
 
-phaseLabels_dev = noisyTransients.add_phase_shift_random(phase_var=90)            # shape is (2, 1, 160)
-on_freqCorr_specs_dev, off_freqCorr_specs_dev = noisyTransients.get_specs()       # shape is (1, 2048, 160)
+    # obtain the frequency labels and the 'nod-corrected' spectra
+    freqLabels_dev[:, :, (groundTruthNumber*transient_count):(groundTruthNumber*transient_count+transient_count)] = noisyTransients.add_freq_shift_random(freq_var=20)
+    on_all_specs_dev[0, :, (groundTruthNumber*transient_count):(groundTruthNumber*transient_count+transient_count)], \
+    off_all_specs_dev[0, :, (groundTruthNumber*transient_count):(groundTruthNumber*transient_count+transient_count)] = noisyTransients.get_specs()
 
-freqLabels_dev = noisyTransients.add_freq_shift_random(freq_var=20)
-on_all_specs_dev, off_all_specs_dev = noisyTransients.get_specs()
-diff_specs = on_all_specs_dev - off_all_specs_dev
-mean_diff_specs = diff_specs.mean(axis=2).flatten()
+    # snr = noisyTransients.get_SNR(specs=(on_all_specs_dev - off_all_specs_dev))    # sanity check ensuring SNR is set correctly
 
-snr = noisyTransients.get_SNR(specs=diff_specs)
+    np.save(f"TruePhaseLabels_EXAMPLE_Dev.npy", phaseLabels_dev)
+    np.save(f"TrueFreqLabels_EXAMPLE_Dev.npy", freqLabels_dev)
+    np.save(f"ON_FreqCorrectedSpecs_EXAMPLE_Dev.npy", on_freqCorr_specs_dev)
+    np.save(f"OFF_FreqCorrectedSpecs_EXAMPLE_Dev.npy", off_freqCorr_specs_dev)
+    np.save(f"ON_AllSpecs_EXAMPLE_Dev.npy", on_all_specs_dev)
+    np.save(f"OFF_AllSpecs_EXAMPLE_Dev.npy", off_all_specs_dev)
 ########################################################################################################################
 # Clean and Split Data
 ########################################################################################################################
 # Select window of points
-ppm = np.ndarray.round(ppm, 2)
+ppm = np.ndarray.round(noisyTransients.ppm, 2)
 ind_close, ind_far = np.amax(np.where(ppm == 0.00)), np.amin(np.where(ppm == 7.83))
+ppm_1024 = ppm[ind_far:ind_close]
 on_freqCorr_specs_dev = on_freqCorr_specs_dev[:, ind_far:ind_close, :]
 off_freqCorr_specs_dev = off_freqCorr_specs_dev[:, ind_far:ind_close, :]
 on_all_specs_dev = on_all_specs_dev[:, ind_far:ind_close, :]
-off_all_specs_dev = off_all_specs_dev[:, ind_far:ind_close, :]          # shape is (1, 1024, 160)
+off_all_specs_dev = off_all_specs_dev[:, ind_far:ind_close, :]          # shape is (subspectra (1), num of spectral points (1024), num transients(160*250))
+
 
 # data split (80 training / 20 validation)
 on_freqCorr_specs_train = on_freqCorr_specs_dev[:, :, :int(on_freqCorr_specs_dev.shape[2]*0.8)]
@@ -95,7 +108,8 @@ on_freqLabels_val = freqLabels_dev[0, :, int(freqLabels_dev.shape[2]*0.8):]
 off_freqLabels_train = freqLabels_dev[1, :, :int(freqLabels_dev.shape[2]*0.8)]
 off_freqLabels_val = freqLabels_dev[1, :, int(freqLabels_dev.shape[2]*0.8):]
 
-# data normalization (currently normalized per scan) and reshaping  (#may be a problem with normalization)
+
+# data normalization (currently normalized per scan) and reshaping
 both = np.concatenate((on_all_specs_train, off_all_specs_train))
 mean_train, std_train = both.mean(), both.std()
 
@@ -118,6 +132,7 @@ on_all_specs_train = np.einsum('kij->kji', on_all_specs_train)
 on_all_specs_val = np.einsum('kij->kji', on_all_specs_val)
 off_all_specs_train = np.einsum('kij->kji', off_all_specs_train)
 off_all_specs_val = np.einsum('kij->kji', off_all_specs_val)
+
 
 # Concatenate data and separate real and imaginary
 all_specs_train, all_specs_val = np.zeros(shape=(2, on_all_specs_train.shape[1]*2, 1024)), np.zeros(shape=(2, on_all_specs_val.shape[1]*2, 1024))
@@ -154,22 +169,28 @@ phaseLabels_train[:, on_phaseLabels_train.shape[1]:] = off_phaseLabels_train
 phaseLabels_val[:, :on_phaseLabels_val.shape[1]] = on_phaseLabels_val
 phaseLabels_val[:, on_phaseLabels_val.shape[1]:] = off_phaseLabels_val
 
-# Real Valued CNN
-all_specs_train = (all_specs_train[0, :, :])[np.newaxis, :, :]
-all_specs_val = (all_specs_val[0, :, :])[np.newaxis, :, :]
+# # Real Valued CNN
+# # magnitude value calculation
+all_specs_train = np.sqrt((all_specs_train[0, :, :])*(all_specs_train[0, :, :]) + (all_specs_train[1, :, :])*(all_specs_train[1, :, :]))
+all_specs_train = all_specs_train[np.newaxis, :, :]
+all_specs_val = np.sqrt((all_specs_val[0, :, :])*(all_specs_val[0, :, :]) + (all_specs_val[1, :, :])*(all_specs_val[1, :, :]))
+all_specs_val = all_specs_val[np.newaxis, :, :]
+
+# real value
 freqCorr_specs_train = (freqCorr_specs_train[0, :, :])[np.newaxis, :, :]
 freqCorr_specs_val = (freqCorr_specs_val[0, :, :])[np.newaxis, :, :]
 
-# Convert to tensors and transfer operations to GPU
-all_specs_train_tensor = torch.from_numpy(all_specs_train).float().to(device)        # shape is (#channels, #samples, #spectralPoints)
-all_specs_val_tensor = torch.from_numpy(all_specs_val).float().to(device)
-freqCorr_specs_train_tensor = torch.from_numpy(freqCorr_specs_train).float().to(device)
-freqCorr_specs_val_tensor = torch.from_numpy(freqCorr_specs_val).float().to(device)
 
-freqLabels_train_tensor = torch.from_numpy(freqLabels_train).float().to(device)      # shape is (1, #samples)
-freqLabels_val_tensor = torch.from_numpy(freqLabels_val).float().to(device)
-phaseLabels_train_tensor = torch.from_numpy(phaseLabels_train).float().to(device)
-phaseLabels_val_tensor = torch.from_numpy(phaseLabels_val).float().to(device)
+# Convert to tensors and transfer operations to GPU
+all_specs_train_tensor = torch.from_numpy(all_specs_train).float()      # shape is (#channels, #samples, #spectralPoints)
+all_specs_val_tensor = torch.from_numpy(all_specs_val).float()
+freqCorr_specs_train_tensor = torch.from_numpy(freqCorr_specs_train).float()
+freqCorr_specs_val_tensor = torch.from_numpy(freqCorr_specs_val).float()
+
+freqLabels_train_tensor = torch.from_numpy(freqLabels_train).float()    # shape is (1, #samples)
+freqLabels_val_tensor = torch.from_numpy(freqLabels_val).float()
+phaseLabels_train_tensor = torch.from_numpy(phaseLabels_train).float()
+phaseLabels_val_tensor = torch.from_numpy(phaseLabels_val).float()
 
 ########################################################################################################################
 # Set-up Datasets, Dataloaders and Transforms
@@ -204,6 +225,8 @@ for epoch in range(nmb_epochs):
     for index, sample in enumerate(freq_train_loader):
         # FORWARD (Model predictions and loss)
         specs, labels = sample
+        specs = specs.to(device)
+        labels = labels.to(device)
         optimizer.zero_grad()
 
         TrainPred = model(specs.float())
@@ -218,12 +241,17 @@ for epoch in range(nmb_epochs):
     with torch.no_grad():
         for sample in freq_val_loader:
             ValSpecs, ValLabels = sample
+            ValSpecs = ValSpecs.to(device)
+            ValLabels = ValLabels.to(device)
+
             ValPred = model(ValSpecs.float())
             val_loss = loss_fn(ValPred, ValLabels)
             epoch_lossesV.append(val_loss.item())
 
             if (epoch+1)%lr_scheduler_freq==0:
                 lr_scheduler.step()
+
+
 
     # Print results every epoch
     print(f"Training: Predicted {TrainPred} and True {labels}")
@@ -257,7 +285,6 @@ torch.save(model.state_dict(), f"{run_name}.pt")
 # print()
 #
 # # save labels
-# np.save(f"PRED_TestLabels_{run_name}.npy", predLabels)
-# np.save(f"REAL_TestLabels_{run_name}.npy", trueLabels)
-# np.save(f"ON_TestSpecs_{run_name}.npy", test_specs_ON)
-# np.save(f"OFF_TestSpecs_{run_name}.npy", test_specs_OFF)
+# np.save(f"PredLabels_{run_name}.npy", predLabels)     #needs to be manually changed with model
+# np.save(f"TrueLabels_{run_name}.npy", trueLabels)
+# np.save(f"AllSpecs_{run_name}.npy", all_specs_test)
