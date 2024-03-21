@@ -438,3 +438,207 @@ for epochNUMS in nmb_epochs:
 
                 # save labels
                 np.save(f"PredLabels_{run_name}_{offsetSize[indS]}.npy", predTestLabels)
+
+
+########################################################################################################################
+# TEST ONLY FORMAT
+########################################################################################################################
+
+# FPC Winter 2024
+from random import shuffle
+import random
+import matplotlib.pyplot as plt
+import math
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader
+
+from Datasets import FPC_Dataset_1C, FPC_Dataset_Tapper, FPC_Dataset_2C
+from AblationStudyModels import compIn_realConv, compIn_compConv
+from TapperModel import tapperModel
+from MaModel import maModel
+
+########################################################################################################################
+# Set Up Loop
+########################################################################################################################
+# hyperparameters
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+modelTypes = ["compReal", "Ma_4Convs", "Tapper",
+              "compComp"]  # currently missing ["Ma_2Convs", "realReal", "Tapper", "compComp", "Ma_4Convs", "compReal"]
+netTypes = ["freq", "phase"]  # ["freq", "phase"]
+offsetSize = ["Small", "Medium", "Large"]
+
+batch_size, learn_r = 64, 0.001
+nmb_epochs = [5]
+loss_fn = nn.L1Loss()
+lr_scheduler_freq = 25
+predTrainLabels, predValLabels = 0, 0
+
+for epochNUMS in nmb_epochs:
+    for model_name in modelTypes:  # models: MLP, CNN, CR-CNN
+        for net in netTypes:  # nets: frequency and phase
+            run_name = f'{net}_InVivo_{model_name}_MaxBothIndv'
+            print(run_name)
+
+        ########################################################################################################################
+        # Model and Loss Function
+        ########################################################################################################################
+        # load appropriate model
+        if model_name == "Ma_4Convs":
+            model = maModel().float()
+        elif model_name == "Tapper":
+            model = tapperModel().float()
+        elif model_name == "compReal":
+            model = compIn_realConv().float()
+        elif model_name == "compComp":
+            model = compIn_compConv().float()
+        else:
+            print("Model load not found!")
+            break
+
+        # load model to GPU and set-up optimizer and scheduler
+        model.to(device)
+        optimizer = optim.Adam(model.parameters(), lr=learn_r)
+        lr_scheduler = torch.optim.lr_scheduler.MultiplicativeLR(optimizer, lambda lr: 0.5)
+
+        #########################################################################################################################
+        # TEST SETUP
+        #########################################################################################################################
+        # Test based on offset size (small, medium, large)
+        for size in offsetSize:
+            indS = offsetSize.index(size)
+
+            run_name_test = f'{size}_{net}_InVivo_{model_name}'
+            print(run_name_test)
+            modelLoadName = f"{net}_Sim2_5_MixWater_{model_name}_MaxBothIndv_SimForVivo"
+
+            # load data
+            dataVDir = "C:/Users/Hanna B/Desktop/FPCFinal2024/SpecsGeneration/Data/"
+            t_inVivo = np.load(f"{dataVDir}InVivo/GTs/time_InVivo.npy")
+            ppmVivo = np.load(f"{dataVDir}InVivo/GTs/ppm_InVivo.npy")
+
+            on_all_specs_test = np.load(
+                f"{dataVDir}InVivo/Corrupt/allSpecsInVivoON_{offsetSize[indS]}Offsets.npy")[0, :, :]
+            off_all_specs_test = np.load(
+                f"{dataVDir}InVivo/Corrupt/allSpecsInVivoOFF_{offsetSize[indS]}Offsets.npy")[0, :, :]
+            trueFreqLabels_test = np.load(
+                f"{dataVDir}InVivo/Corrupt/FnoiseInVivo_{offsetSize[indS]}Offsets.npy")
+            truePhaseLabels_test = np.load(
+                f"{dataVDir}InVivo/Corrupt/PnoiseInVivo_{offsetSize[indS]}Offsets.npy")
+
+            # Spectra Normalization
+            # Percentile
+            on_all_specs_test = (on_all_specs_test) / ((np.percentile(np.abs(on_all_specs_test), 95, axis=1, keepdims=True)))
+            off_all_specs_test = (off_all_specs_test) / ((np.percentile(np.abs(off_all_specs_test), 95, axis=1, keepdims=True)))
+
+            # Concatenate ON and OFF specs
+            testSpecs = np.concatenate((on_all_specs_test, off_all_specs_test), axis=0)
+            testFreqLabels = np.concatenate((trueFreqLabels_test[1, :], trueFreqLabels_test[0, :]))
+            testPhaseLabels = np.concatenate((truePhaseLabels_test[1, :], truePhaseLabels_test[0, :]))
+
+            # remove to reduce to a single dimension (would need to change dataset too)
+            testFreqLabels = testFreqLabels[np.newaxis, :]
+            testPhaseLabels = testPhaseLabels[np.newaxis, :]
+
+            # Magnitude of Data and 2-channel Complex Data
+            allSpecsTest_2ChanComp = np.empty((2, testSpecs.shape[0], testSpecs.shape[1]))
+            allSpecsTest_2ChanComp[0, :, :], allSpecsTest_2ChanComp[1, :,
+                                             :] = testSpecs.real, testSpecs.imag
+            allSpecsTest_Mag = np.abs(testSpecs[np.newaxis, :, :])
+
+            # Window 1024 Points Starting at 0 ppm
+            ivStart, ivFinish = np.where(ppmVivo <= 0.00)[0][-1], np.where(ppmVivo >= 7.83)[0][0] - 1
+
+            # Convert to tensors and transfer operations to GPU
+            allSpecsTest_2ChanCompTensor = torch.from_numpy(allSpecsTest_2ChanComp[:, :,
+                                                            ivStart:ivFinish]).float()  # shape is (#channels, #samples, #spectralPoints)
+            allSpecsTest_MagTensor = torch.from_numpy(allSpecsTest_Mag[:, :, ivStart:ivFinish]).float()
+            testFreqLabelsTensor = torch.from_numpy(testFreqLabels).float()
+            testPhaseLabelsTensor = torch.from_numpy(testPhaseLabels).float()
+
+            # select network for testing
+            if net == "freq":
+                # select model
+                if model_name == "Ma_4Convs":
+                    test_dataset = FPC_Dataset_1C(allSpecsTest_MagTensor, testFreqLabelsTensor)
+                elif model_name == "Tapper":
+                    test_dataset = FPC_Dataset_Tapper(allSpecsTest_MagTensor, testFreqLabelsTensor)
+                elif (model_name == "compReal") or (model_name == "compComp"):
+                    test_dataset = FPC_Dataset_2C(allSpecsTest_2ChanCompTensor, testFreqLabelsTensor)
+                else:  # assumed to be CR-CNN
+                    print(f'freq test model not found!')
+
+            elif net == "phase":
+                # apply frequency correction
+                freqCorr_specsTest = np.zeros(shape=(2, allSpecsTest_2ChanComp.shape[1], 2048))
+                TestFids = np.fft.fft(np.fft.fftshift(testSpecs, axes=1), axis=1)
+
+                # perform frequency correction based on true labels (only artificially added offsets)
+                for y in range(0, testFreqLabels.shape[1]):
+                    TestFids[y, :] = TestFids[y, :] * np.exp(
+                        -1j * t_inVivo[:] * (-testFreqLabels[:, y]) * 2 * math.pi)
+
+                # convert back to specs and select real values for certain models
+                TestFids = np.fft.fftshift(np.fft.ifft(TestFids, axis=1), axes=1)
+                freqCorr_specsTest[0, :, :], freqCorr_specsTest[1, :, :] = TestFids.real, TestFids.imag
+                freqCorr_specsTest_real = (freqCorr_specsTest[0, :, :])[np.newaxis, :, :]
+                freqCorr_specs_test_tensor = torch.from_numpy(
+                    freqCorr_specsTest[:, :, ivStart:ivFinish]).float()
+                freqCorr_specs_test_real_tensor = torch.from_numpy(
+                    freqCorr_specsTest_real[:, :, ivStart:ivFinish]).float()
+
+                # select model and give data to dataloader
+                if model_name == "Ma_4Convs":
+                    test_dataset = FPC_Dataset_1C(freqCorr_specs_test_real_tensor,
+                                                  testPhaseLabelsTensor)
+                elif model_name == "Tapper":
+                    test_dataset = FPC_Dataset_Tapper(freqCorr_specs_test_real_tensor,
+                                                      testPhaseLabelsTensor)
+                elif (model_name == "compReal") or (model_name == "compComp"):
+                    test_dataset = FPC_Dataset_2C(freqCorr_specs_test_tensor, testPhaseLabelsTensor)
+                else:  # assumed to be CR-CNN
+                    print(f'phase test model not found!')
+
+            test_loader = DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=False)
+
+            #########################################################################################################################
+            # Test Loop
+            #########################################################################################################################
+            # Testing Loop parameter set-up
+            epoch_lossesTest, predTestLabels = [], np.zeros((testPhaseLabels.shape[1]))
+            loop, ind5 = 0, 0
+            lowestLoss, highestLoss = 100000, 0
+            predLabels = np.zeros(testSpecs.shape[1])
+            model.load_state_dict(
+                torch.load(f"C:/Users/Hanna B/PycharmProjects/FPC_2024/{modelLoadName}.pt"))
+            model.eval()
+
+            with torch.no_grad():
+                for sample in test_loader:
+                    # getting specs and labels from dataloader sample and passing them to GPU
+                    Testspecs, TestLabels = sample
+                    Testspecs, TestLabels = Testspecs.to(device), TestLabels.to(device)
+
+                    # passing specs to model
+                    predTest = model(Testspecs.float())
+
+                    # calculating loss (only based on artificially added offsets) and saving predictions
+                    test_loss = loss_fn(predTest, TestLabels)
+                    epoch_lossesTest.append(test_loss.item())
+                    predTestLabels[loop:loop + batch_size] = predTest.cpu().flatten()
+                    loop = loop + batch_size
+
+                    if test_loss > highestLoss:
+                        highestLoss = test_loss
+                    if test_loss < lowestLoss:
+                        lowestLoss = test_loss
+
+                # print(f'Testing Complete for {run_name_test}')
+                print(f'Testing Complete for {run_name}')
+                print(f'Lowest test_loss {lowestLoss}, highest loss {highestLoss} and mean loss {sum(epoch_lossesTest) / len(epoch_lossesTest)}')
+                print()
+
+            # save labels
+            np.save(f"PredLabels_{run_name}_{offsetSize[indS]}.npy", predTestLabels)
