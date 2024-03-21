@@ -1,412 +1,359 @@
-# FPC Winter 2024
-import matplotlib.pyplot as plt
-import random
+# FPC Winter 2024 (03_18_2024)
+from random import shuffle
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
-from transient_maker import TransientMaker
-from Datasets import FPC_Dataset, FPC_Dataset_Tapper
-from AblationStudyModels import realIn_realConv, compIn_realConv, compIn_compConv
+from Datasets import FPC_Dataset_Tapper, FPC_Dataset_1C, FPC_Dataset_2C
+from AblationStudyModels import compIn_realConv, compIn_compConv, realIn_realConv
 from TapperModel import tapperModel
-from MaModel import maModel, maModel2Convs
-
-#################################
-# prep in vivo data
-#################################
-
-
-
+from MaModel import maModel
 
 ########################################################################################################################
-# Clean and Split Data
+# Set Up Loop
 ########################################################################################################################
-# set-up hyperparameters
+# hyperparameters
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-# inputTypes, convTypes = ["comp", "real"], ["comp", "real"]  # order of inputs is reversed since we are not doing realIN_compCONV
-modelTypes = ["compReal"]   # currently missing ["Ma_2Convs", "realReal", "Tapper", "compComp", "Ma_4Convs", "compReal"]
-netTypes = ["phase"]    #["freq", "phase"]
-snrTypes = ["2_5"]      #["10", "5", "2_5"]
-dataName = "Sim"
-resid = ["Mix"]  # ["Mix", "Neg", "None", "Pos"]
-set = ["Dev", "Test"]
+modelTypes = ["compReal", "Ma_4Convs", "Tapper"]
+# whole list of models ["Ma_2Convs", "realReal", "Tapper", "compComp", "Ma_4Convs", "compReal"]
+netTypes = ["phase"]
+dataTypes = ["Mix", "None", "Pos"]
+snrTypes = ["2_5", "5", "10"]
 
-batch_size, learn_r = 16, 0.0001
-nmb_epochs = 100 # 200
+batch_size, learn_r = 64, 0.001
+nmb_epochs = 200
 loss_fn = nn.L1Loss()
 lr_scheduler_freq = 25
+predTrainLabels, predValLabels = 0, 0
 
-ppm = np.loadtxt("C:/Users/Hanna B/PycharmProjects/FPC_2024/Development/ppm_2048.csv", delimiter=",")[:, 0].flatten()
-ppm = np.ndarray.round(ppm, 2)
-ind_close, ind_far = np.amax(np.where(ppm == 0.00)), np.amin(np.where(ppm == 7.83))
+#########################################################################################################################
+# DEVSET SETUP
+#########################################################################################################################
+# load data
+dataDir = "C:/Users/Hanna B/Desktop/FPCFinal2024/SpecsGeneration/Data/Simulated/Corrupt/"
 
-
-for water in resid:
-    indW = resid.index(water)
-
+for water in dataTypes:
+    indW = dataTypes.index(water)
     for snr in snrTypes:
-        ind = snrTypes.index(snr)
-        print(f'SNR {snrTypes[ind]} and water resid {resid[indW]}')
-        print(f'example file location:... /Sim{snrTypes[ind]}_{resid[indW]}/ON_FreqCorrectedSpecs_{dataName}{snrTypes[ind]}_{resid[indW]}_{set[0]}')
+        indS = snrTypes.index(snr)
+        ppm = np.load("C:/Users/Hanna B/Desktop/FPCFinal2024/SpecsGeneration/Data/Simulated/GTs/ppm_Sim.npy")
+        t = np.load("C:/Users/Hanna B/Desktop/FPCFinal2024/SpecsGeneration/Data/Simulated/GTs/time_Sim.npy")
 
-        on_freqCorr_specs_dev = np.load(f"C:/Users/Hanna B/PycharmProjects/FPC_2024/Sim{snrTypes[ind]}_{resid[indW]}/ON_FreqCorrectedSpecs_{dataName}{snrTypes[ind]}_{resid[indW]}_{set[0]}.npy")
-        off_freqCorr_specs_dev = np.load(f"C:/Users/Hanna B/PycharmProjects/FPC_2024/Sim{snrTypes[ind]}_{resid[indW]}/OFF_FreqCorrectedSpecs_{dataName}{snrTypes[ind]}_{resid[indW]}_{set[0]}.npy")
-        on_all_specs_dev = np.load(f"C:/Users/Hanna B/PycharmProjects/FPC_2024/Sim{snrTypes[ind]}_{resid[indW]}/ON_AllSpecs_{dataName}{snrTypes[ind]}_{resid[indW]}_{set[0]}.npy")
-        off_all_specs_dev = np.load(f"C:/Users/Hanna B/PycharmProjects/FPC_2024/Sim{snrTypes[ind]}_{resid[indW]}/OFF_AllSpecs_{dataName}{snrTypes[ind]}_{resid[indW]}_{set[0]}.npy")
+        on_all_specs_dev = np.load(f"{dataDir}Sim{snrTypes[indS]}_{dataTypes[indW]}/ON_AllSpecs_Sim{snrTypes[indS]}_{dataTypes[indW]}_DevFinal.npy")
+        off_all_specs_dev = np.load(f"{dataDir}Sim{snrTypes[indS]}_{dataTypes[indW]}/OFF_AllSpecs_Sim{snrTypes[indS]}_{dataTypes[indW]}_DevFinal.npy")
 
-        on_freqCorr_specs_test = np.load(f"C:/Users/Hanna B/PycharmProjects/FPC_2024/Sim{snrTypes[ind]}_{resid[indW]}/ON_FreqCorrectedSpecs_{dataName}{snrTypes[ind]}_{resid[indW]}_{set[1]}.npy")
-        off_freqCorr_specs_test = np.load(f"C:/Users/Hanna B/PycharmProjects/FPC_2024/Sim{snrTypes[ind]}_{resid[indW]}/OFF_FreqCorrectedSpecs_{dataName}{snrTypes[ind]}_{resid[indW]}_{set[1]}.npy")
-        on_all_specs_test = np.load(f"C:/Users/Hanna B/PycharmProjects/FPC_2024/Sim{snrTypes[ind]}_{resid[indW]}/ON_AllSpecs_{dataName}{snrTypes[ind]}_{resid[indW]}_{set[1]}.npy")
-        off_all_specs_test = np.load(f"C:/Users/Hanna B/PycharmProjects/FPC_2024/Sim{snrTypes[ind]}_{resid[indW]}/OFF_AllSpecs_{dataName}{snrTypes[ind]}_{resid[indW]}_{set[1]}.npy")
+        phaseLabels_dev = np.load(f"{dataDir}Sim{snrTypes[indS]}_{dataTypes[indW]}/TruePhaseLabels_Sim{snrTypes[indS]}_{dataTypes[indW]}_DevFinal.npy")
+        freqLabels_dev = np.load(f"{dataDir}Sim{snrTypes[indS]}_{dataTypes[indW]}/TrueFreqLabels_Sim{snrTypes[indS]}_{dataTypes[indW]}_DevFinal.npy")
 
-        phaseLabels_dev = np.load(f"C:/Users/Hanna B/PycharmProjects/FPC_2024/Sim{snrTypes[ind]}_{resid[indW]}/TruePhaseLabels_{dataName}{snrTypes[ind]}_{resid[indW]}_{set[0]}.npy")
-        phaseLabels_test = np.load(f"C:/Users/Hanna B/PycharmProjects/FPC_2024/Sim{snrTypes[ind]}_{resid[indW]}/TruePhaseLabels_{dataName}{snrTypes[ind]}_{resid[indW]}_{set[1]}.npy")
-        freqLabels_dev = np.load(f"C:/Users/Hanna B/PycharmProjects/FPC_2024/Sim{snrTypes[ind]}_{resid[indW]}/TrueFreqLabels_{dataName}{snrTypes[ind]}_{resid[indW]}_{set[0]}.npy")
-        freqLabels_test = np.load(f"C:/Users/Hanna B/PycharmProjects/FPC_2024/Sim{snrTypes[ind]}_{resid[indW]}/TrueFreqLabels_{dataName}{snrTypes[ind]}_{resid[indW]}_{set[1]}.npy")
+        on_all_specs_test = np.load(f"{dataDir}Sim{snrTypes[indS]}_{dataTypes[indW]}/ON_AllSpecs_Sim{snrTypes[indS]}_{dataTypes[indW]}_testFinal.npy")
+        off_all_specs_test = np.load(f"{dataDir}Sim{snrTypes[indS]}_{dataTypes[indW]}/OFF_AllSpecs_Sim{snrTypes[indS]}_{dataTypes[indW]}_testFinal.npy")
 
-        print(phaseLabels_dev.shape)
-        # Select window of points
-        on_freqCorr_specs_dev = on_freqCorr_specs_dev[:, ind_far:ind_close, :]
-        off_freqCorr_specs_dev = off_freqCorr_specs_dev[:, ind_far:ind_close, :]
-        on_all_specs_dev = on_all_specs_dev[:, ind_far:ind_close, :]
-        off_all_specs_dev = off_all_specs_dev[:, ind_far:ind_close, :]  # shape is (subspectra (1), num of spectral points (1024), num transients(160*250))
+        freqLabels_test = np.load(f"{dataDir}Sim{snrTypes[indS]}_{dataTypes[indW]}/TrueFreqLabels_Sim{snrTypes[indS]}_{dataTypes[indW]}_testFinal.npy")
+        phaseLabels_test = np.load(f"{dataDir}Sim{snrTypes[indS]}_{dataTypes[indW]}/TruePhaseLabels_Sim{snrTypes[indS]}_{dataTypes[indW]}_testFinal.npy")
 
-        on_freqCorr_specs_test = on_freqCorr_specs_test[:, ind_far:ind_close, :]
-        off_freqCorr_specs_test = off_freqCorr_specs_test[:, ind_far:ind_close, :]
-        on_all_specs_test = on_all_specs_test[:, ind_far:ind_close, :]
-        off_all_specs_test = off_all_specs_test[:, ind_far:ind_close, :]  # shape is (subspectra (1), num of spectral points (1024), num transients(160*250))
+        on_all_specs_devFC = np.load(f"{dataDir}Sim{snrTypes[indS]}_{dataTypes[indW]}/ON_AllSpecsFC_Sim{snrTypes[indS]}_{dataTypes[indW]}_DevFinal.npy")
+        off_all_specs_devFC = np.load(f"{dataDir}Sim{snrTypes[indS]}_{dataTypes[indW]}/OFF_AllSpecsFC_Sim{snrTypes[indS]}_{dataTypes[indW]}_DevFinal.npy")
+        on_all_specs_testFC = np.load(f"{dataDir}Sim{snrTypes[indS]}_{dataTypes[indW]}/ON_AllSpecsFC_Sim{snrTypes[indS]}_{dataTypes[indW]}_testFinal.npy")
+        off_all_specs_testFC = np.load(f"{dataDir}Sim{snrTypes[indS]}_{dataTypes[indW]}/OFF_AllSpecsFC_Sim{snrTypes[indS]}_{dataTypes[indW]}_testFinal.npy")
 
-        # data split (80 training / 20 validation)
-        on_freqCorr_specs_train = on_freqCorr_specs_dev[:, :, :int(on_freqCorr_specs_dev.shape[2] * 0.8)]
-        on_freqCorr_specs_val = on_freqCorr_specs_dev[:, :, int(on_freqCorr_specs_dev.shape[2] * 0.8):]
-        off_freqCorr_specs_train = off_freqCorr_specs_dev[:, :, :int(off_freqCorr_specs_dev.shape[2] * 0.8)]
-        off_freqCorr_specs_val = off_freqCorr_specs_dev[:, :, int(off_freqCorr_specs_dev.shape[2] * 0.8):]
+        # Normalization
+        on_all_specs_dev = ((on_all_specs_dev) / ((np.percentile(np.abs(on_all_specs_dev), 95, axis=0, keepdims=True))))
+        off_all_specs_dev = ((off_all_specs_dev) / ((np.percentile(np.abs(off_all_specs_dev), 95, axis=0, keepdims=True))))
+        on_all_specs_devFC = ((on_all_specs_devFC) / ((np.percentile(np.abs(on_all_specs_devFC), 95, axis=0, keepdims=True))))
+        off_all_specs_devFC = ((off_all_specs_devFC) / ((np.percentile(np.abs(off_all_specs_devFC), 95, axis=0, keepdims=True))))
 
-        on_all_specs_train = on_all_specs_dev[:, :, :int(on_all_specs_dev.shape[2] * 0.8)]
-        on_all_specs_val = on_all_specs_dev[:, :, int(on_all_specs_dev.shape[2] * 0.8):]
-        off_all_specs_train = off_all_specs_dev[:, :, :int(off_all_specs_dev.shape[2] * 0.8)]
-        off_all_specs_val = off_all_specs_dev[:, :, int(off_all_specs_dev.shape[2] * 0.8):]
+        on_all_specs_test = ((on_all_specs_test) / ((np.percentile(np.abs(on_all_specs_test), 95, axis=0, keepdims=True))))
+        off_all_specs_test = ((off_all_specs_test) / ((np.percentile(np.abs(off_all_specs_test), 95, axis=0, keepdims=True))))
+        on_all_specs_testFC = ((on_all_specs_testFC) / ((np.percentile(np.abs(on_all_specs_testFC), 95, axis=0, keepdims=True))))
+        off_all_specs_testFC = ((off_all_specs_testFC) / ((np.percentile(np.abs(off_all_specs_testFC), 95, axis=0, keepdims=True))))
 
-        on_phaseLabels_train = phaseLabels_dev[0, :, :int(phaseLabels_dev.shape[2] * 0.8)]
-        on_phaseLabels_val = phaseLabels_dev[0, :, int(phaseLabels_dev.shape[2] * 0.8):]
-        off_phaseLabels_train = phaseLabels_dev[1, :, :int(phaseLabels_dev.shape[2] * 0.8)]
-        off_phaseLabels_val = phaseLabels_dev[1, :, int(phaseLabels_dev.shape[2] * 0.8):]
-        on_freqLabels_train = freqLabels_dev[0, :, :int(freqLabels_dev.shape[2] * 0.8)]
-        on_freqLabels_val = freqLabels_dev[0, :, int(freqLabels_dev.shape[2] * 0.8):]
-        off_freqLabels_train = freqLabels_dev[1, :, :int(freqLabels_dev.shape[2] * 0.8)]
-        off_freqLabels_val = freqLabels_dev[1, :, int(freqLabels_dev.shape[2] * 0.8):]
+        # Separate train/val evenly
+        trainSpecs = np.swapaxes(np.concatenate((on_all_specs_dev[:, :int(0.8 * on_all_specs_dev.shape[1])],
+                                                 off_all_specs_dev[:, :int(0.8 * off_all_specs_dev.shape[1])]), axis=1), axis1=1, axis2=0)
+        trainFreqLabels = np.concatenate((freqLabels_dev[1, :int(0.8 * on_all_specs_dev.shape[1])],
+                                          freqLabels_dev[0, :int(0.8 * off_all_specs_dev.shape[1])]), axis=0)[np.newaxis, :]
+        trainPhaseLabels = np.concatenate((phaseLabels_dev[1, :int(0.8 * on_all_specs_dev.shape[1])],
+                                          phaseLabels_dev[0, :int(0.8 * off_all_specs_dev.shape[1])]), axis=0)[np.newaxis, :]
 
-        on_phaseLabels_test = phaseLabels_test[0, :, :]
-        off_phaseLabels_test = phaseLabels_test[1, :, :]
-        on_freqLabels_test = freqLabels_test[0, :, :]
-        off_freqLabels_test = freqLabels_test[1, :, :]
+        valSpecs = np.swapaxes(np.concatenate((on_all_specs_dev[:, int(0.8 * on_all_specs_dev.shape[1]):],
+                                               off_all_specs_dev[:, int(0.8 * off_all_specs_dev.shape[1]):]), axis=1), axis1=1, axis2=0)
+        valFreqLabels = np.concatenate((freqLabels_dev[1, int(0.8 * on_all_specs_dev.shape[1]):],
+                                        freqLabels_dev[0, int(0.8 * off_all_specs_dev.shape[1]):]), axis=0)[np.newaxis, :]
+        valPhaseLabels = np.concatenate((phaseLabels_dev[1, int(0.8 * on_all_specs_dev.shape[1]):],
+                                         phaseLabels_dev[0, int(0.8 * off_all_specs_dev.shape[1]):]), axis=0)[np.newaxis, :]
 
-        # data normalization (currently normalized per scan) and reshaping
-        both = (np.concatenate((on_all_specs_train, off_all_specs_train)))
-        both_RM = np.mean(both.real)
-        both_IM = np.mean(both.imag)
-        both_RS = np.std(both.real)
-        both_IS = np.std(both.imag)
+        testSpecs = np.swapaxes(np.concatenate((on_all_specs_test, off_all_specs_test), axis=1), axis1=1, axis2=0)
+        testFreqLabels = np.concatenate((freqLabels_test[1, :], freqLabels_test[0, :]), axis=0)[np.newaxis, :]
+        testPhaseLabels = np.concatenate((phaseLabels_test[1, :], phaseLabels_test[0, :]), axis=0)[np.newaxis, :]
 
-        on_freqCorr_specs_train = ((on_freqCorr_specs_train.real - both_RM) / both_RS) + ((on_freqCorr_specs_train.imag - both_IM) / both_IS)*1j
-        on_freqCorr_specs_val = ((on_freqCorr_specs_val.real - both_RM) / both_RS) + ((on_freqCorr_specs_val.imag - both_IM) / both_IS)*1j
-        off_freqCorr_specs_train = ((off_freqCorr_specs_train.real - both_RM) / both_RS) + ((off_freqCorr_specs_train.imag - both_IM) / both_IS)*1j
-        off_freqCorr_specs_val = ((off_freqCorr_specs_val.real - both_RM) / both_RS) + ((off_freqCorr_specs_val.imag - both_IM) / both_IS)*1j
+        trainSpecsFC = np.swapaxes(np.concatenate((on_all_specs_devFC[:, :int(0.8 * on_all_specs_devFC.shape[1])],
+                                                   off_all_specs_devFC[:, :int(0.8 * off_all_specs_devFC.shape[1])]), axis=1), axis1=1, axis2=0)
+        valSpecsFC = np.swapaxes(np.concatenate((on_all_specs_devFC[:, int(0.8 * on_all_specs_devFC.shape[1]):],
+                                                 off_all_specs_devFC[:, int(0.8 * off_all_specs_devFC.shape[1]):]), axis=1), axis1=1, axis2=0)
+        testSpecsFC = np.swapaxes(np.concatenate((on_all_specs_testFC, off_all_specs_testFC), axis=1), axis1=1, axis2=0)
 
-        on_all_specs_train = ((on_all_specs_train.real - both_RM) / both_RS) + ((on_all_specs_train.imag - both_IM) / both_IS)*1j
-        on_all_specs_val = ((on_all_specs_val.real - both_RM) / both_RS) + ((on_all_specs_val.imag - both_IM) / both_IS)*1j
-        off_all_specs_train = ((off_all_specs_train.real - both_RM) / both_RS) + ((off_all_specs_train.imag - both_IM) / both_IS)*1j
-        off_all_specs_val = ((off_all_specs_val.real - both_RM) / both_RS) + ((off_all_specs_val.imag - both_IM) / both_IS)*1j
+        # Manual Sorting of ON and OFF transients (ON=1 (Sim) and ON=1 (Vivo))
+        index_shufTrain = list(range(trainSpecs.shape[0]))
+        index_shufVal = list(range(valSpecs.shape[0]))
+        shuffle(index_shufTrain), shuffle(index_shufVal)
+        indOrderTrain, indOrderVal = 0, 0
 
-        on_freqCorr_specs_test = ((on_freqCorr_specs_test.real - both_RM) / both_RS) + ((on_freqCorr_specs_test.imag - both_IM) / both_IS)*1j
-        off_freqCorr_specs_test = ((off_freqCorr_specs_test.real - both_RM) / both_RS) + ((off_freqCorr_specs_test.imag - both_IM) / both_IS)*1j
-        on_all_specs_test = ((on_all_specs_test.real - both_RM) / both_RS) + ((on_all_specs_test.imag - both_IM) / both_IS)*1j
-        off_all_specs_test = ((off_all_specs_test.real - both_RM) / both_RS) + ((off_all_specs_test.imag - both_IM) / both_IS)*1j
+        for indRandTrain in index_shufTrain:
+            trainSpecs[indOrderTrain, :] = trainSpecs[indRandTrain, :]
+            trainFreqLabels[:, indOrderTrain] = trainFreqLabels[:, indRandTrain]
+            trainPhaseLabels[:, indOrderTrain] = trainPhaseLabels[:, indRandTrain]
+            trainSpecsFC[indOrderTrain, :] = trainSpecsFC[indRandTrain, :]
+            indOrderTrain = indOrderTrain + 1
 
-        on_freqCorr_specs_train = np.einsum('kij->kji', on_freqCorr_specs_train)
-        on_freqCorr_specs_val = np.einsum('kij->kji', on_freqCorr_specs_val)
-        off_freqCorr_specs_train = np.einsum('kij->kji', off_freqCorr_specs_train)
-        off_freqCorr_specs_val = np.einsum('kij->kji', off_freqCorr_specs_val)
+        for indRandVal in index_shufVal:
+            valSpecs[indOrderVal, :] = valSpecs[indRandVal, :]
+            valFreqLabels[:, indOrderVal] = valFreqLabels[:, indRandVal]
+            valPhaseLabels[:, indOrderVal] = valPhaseLabels[:, indRandVal]
+            valSpecsFC[indOrderVal, :] = valSpecsFC[indRandVal, :]
+            indOrderVal = indOrderVal + 1
 
-        on_all_specs_train = np.einsum('kij->kji', on_all_specs_train)
-        on_all_specs_val = np.einsum('kij->kji', on_all_specs_val)
-        off_all_specs_train = np.einsum('kij->kji', off_all_specs_train)
-        off_all_specs_val = np.einsum('kij->kji', off_all_specs_val)
+        # Magnitude of Data and 2-channel Complex Data
+        allSpecsTrain_2ChanComp = np.empty((2, trainSpecs.shape[0], trainSpecs.shape[1]))
+        allSpecsTrain_2ChanComp[0, :, :], allSpecsTrain_2ChanComp[1, :, :] = trainSpecs.real, trainSpecs.imag
+        allSpecsTrain_Mag = np.abs(trainSpecs)[np.newaxis, :, :]
 
-        on_freqCorr_specs_test = np.einsum('kij->kji', on_freqCorr_specs_test)
-        off_freqCorr_specs_test = np.einsum('kij->kji', off_freqCorr_specs_test)
-        on_all_specs_test = np.einsum('kij->kji', on_all_specs_test)
-        off_all_specs_test = np.einsum('kij->kji', off_all_specs_test)
+        allSpecsVal_2ChanComp = np.empty((2, valSpecs.shape[0], valSpecs.shape[1]))
+        allSpecsVal_2ChanComp[0, :, :], allSpecsVal_2ChanComp[1, :, :] = valSpecs.real, valSpecs.imag
+        allSpecsVal_Mag = np.abs(valSpecs)[np.newaxis, :, :]
 
-        # Concatenate data and separate real and imaginary
-        all_specs_train, all_specs_val = np.zeros(shape=(2, on_all_specs_train.shape[1] * 2, 1024)), np.zeros(shape=(2, on_all_specs_val.shape[1] * 2, 1024))
-        freqCorr_specs_train, freqCorr_specs_val = np.zeros(shape=(2, on_freqCorr_specs_train.shape[1] * 2, 1024)), np.zeros(shape=(2, on_freqCorr_specs_val.shape[1] * 2, 1024))
-        freqLabels_train, freqLabels_val = np.zeros(shape=(1, on_freqLabels_train.shape[1] * 2)), np.zeros(shape=(1, on_freqLabels_val.shape[1] * 2))
-        phaseLabels_train, phaseLabels_val = np.zeros(shape=(1, on_phaseLabels_train.shape[1] * 2)), np.zeros(shape=(1, on_phaseLabels_val.shape[1] * 2))
+        allSpecsTest_2ChanComp = np.empty((2, testSpecs.shape[0], testSpecs.shape[1]))
+        allSpecsTest_2ChanComp[0, :, :], allSpecsTest_2ChanComp[1, :, :] = testSpecs.real, testSpecs.imag
+        allSpecsTest_Mag = np.abs(testSpecs)[np.newaxis, :, :]
 
-        all_specs_train[0, :on_all_specs_train.shape[1], :] = np.squeeze(on_all_specs_train.real)
-        all_specs_train[0, on_all_specs_train.shape[1]:, :] = np.squeeze(off_all_specs_train.real)
-        all_specs_train[1, :on_all_specs_train.shape[1], :] = np.squeeze(on_all_specs_train.imag)
-        all_specs_train[1, on_all_specs_train.shape[1]:, :] = np.squeeze(off_all_specs_train.imag)
-
-        all_specs_val[0, :on_all_specs_val.shape[1], :] = np.squeeze(on_all_specs_val.real)
-        all_specs_val[0, on_all_specs_val.shape[1]:, :] = np.squeeze(off_all_specs_val.real)
-        all_specs_val[1, :on_all_specs_val.shape[1], :] = np.squeeze(on_all_specs_val.imag)
-        all_specs_val[1, on_all_specs_val.shape[1]:, :] = np.squeeze(off_all_specs_val.imag)
-
-        freqCorr_specs_train[0, :on_freqCorr_specs_train.shape[1], :] = np.squeeze(on_freqCorr_specs_train.real)
-        freqCorr_specs_train[0, on_freqCorr_specs_train.shape[1]:, :] = np.squeeze(off_freqCorr_specs_train.real)
-        freqCorr_specs_train[1, :on_freqCorr_specs_train.shape[1], :] = np.squeeze(on_freqCorr_specs_train.imag)
-        freqCorr_specs_train[1, on_freqCorr_specs_train.shape[1]:, :] = np.squeeze(off_freqCorr_specs_train.imag)
-        freqCorr_specs_val[0, :on_freqCorr_specs_val.shape[1], :] = np.squeeze(on_freqCorr_specs_val.real)
-        freqCorr_specs_val[0, on_freqCorr_specs_val.shape[1]:, :] = np.squeeze(off_freqCorr_specs_val.real)
-        freqCorr_specs_val[1, :on_freqCorr_specs_val.shape[1], :] = np.squeeze(on_freqCorr_specs_val.imag)
-        freqCorr_specs_val[1, on_freqCorr_specs_val.shape[1]:, :] = np.squeeze(off_freqCorr_specs_val.imag)
-
-        freqLabels_train[:, :on_freqLabels_train.shape[1]] = on_freqLabels_train
-        freqLabels_train[:, on_freqLabels_train.shape[1]:] = off_freqLabels_train
-        freqLabels_val[:, :on_freqLabels_val.shape[1]] = on_freqLabels_val
-        freqLabels_val[:, on_freqLabels_val.shape[1]:] = off_freqLabels_val
-
-        phaseLabels_train[:, :on_phaseLabels_train.shape[1]] = on_phaseLabels_train
-        phaseLabels_train[:, on_phaseLabels_train.shape[1]:] = off_phaseLabels_train
-        phaseLabels_val[:, :on_phaseLabels_val.shape[1]] = on_phaseLabels_val
-        phaseLabels_val[:, on_phaseLabels_val.shape[1]:] = off_phaseLabels_val
-
-        all_specs_test, freqCorr_specs_test = np.zeros(shape=(2, on_all_specs_test.shape[1] * 2, 1024)), np.zeros(shape=(2, on_freqCorr_specs_test.shape[1] * 2, 1024))
-        freqLabels_test, phaseLabels_test = np.zeros(shape=(1, on_freqLabels_test.shape[1] * 2)), np.zeros(shape=(1, on_phaseLabels_test.shape[1] * 2))
-
-        all_specs_test[0, :on_all_specs_test.shape[1], :] = np.squeeze(on_all_specs_test.real)
-        all_specs_test[0, on_all_specs_test.shape[1]:, :] = np.squeeze(off_all_specs_test.real)
-        all_specs_test[1, :on_all_specs_test.shape[1], :] = np.squeeze(on_all_specs_test.imag)
-        all_specs_test[1, on_all_specs_test.shape[1]:, :] = np.squeeze(off_all_specs_test.imag)
-        freqCorr_specs_test[0, :on_freqCorr_specs_test.shape[1], :] = np.squeeze(on_freqCorr_specs_test.real)
-        freqCorr_specs_test[0, on_freqCorr_specs_test.shape[1]:, :] = np.squeeze(off_freqCorr_specs_test.real)
-        freqCorr_specs_test[1, :on_freqCorr_specs_test.shape[1], :] = np.squeeze(on_freqCorr_specs_test.imag)
-        freqCorr_specs_test[1, on_freqCorr_specs_test.shape[1]:, :] = np.squeeze(off_freqCorr_specs_test.imag)
-
-        freqLabels_test[:, :on_freqLabels_test.shape[1]] = on_freqLabels_test
-        freqLabels_test[:, on_freqLabels_test.shape[1]:] = off_freqLabels_test
-        phaseLabels_test[:, :on_phaseLabels_test.shape[1]] = on_phaseLabels_test
-        phaseLabels_test[:, on_phaseLabels_test.shape[1]:] = off_phaseLabels_test
-
-        # Real Valued CNN
-        # magnitude value calculation
-        all_specs_train_real = np.sqrt((all_specs_train[0, :, :]) * (all_specs_train[0, :, :]) + (all_specs_train[1, :, :]) * (all_specs_train[1, :, :]))
-        all_specs_train_real = all_specs_train_real[np.newaxis, :, :]
-        all_specs_val_real = np.sqrt((all_specs_val[0, :, :]) * (all_specs_val[0, :, :]) + (all_specs_val[1, :, :]) * (all_specs_val[1, :, :]))
-        all_specs_val_real = all_specs_val_real[np.newaxis, :, :]
-
-        # real value (because phase network)
-        freqCorr_specs_train_real = (freqCorr_specs_train[0, :, :])[np.newaxis, :, :]
-        freqCorr_specs_val_real = (freqCorr_specs_val[0, :, :])[np.newaxis, :, :]
-
-        all_specs_test_real = np.sqrt((all_specs_test[0, :, :]) * (all_specs_test[0, :, :]) + (all_specs_test[1, :, :]) * (all_specs_test[1, :, :]))
-        all_specs_test_real = all_specs_test_real[np.newaxis, :, :]
-        freqCorr_specs_test_real = (freqCorr_specs_test[0, :, :])[np.newaxis, :, :]
+        # Window 1024 Points Starting at 0 ppm
+        simStart, simFinish = np.where(ppm <= 0.00)[0][-1], np.where(ppm >= 7.83)[0][0] - 1
 
         # Convert to tensors and transfer operations to GPU
-        all_specs_train_tensor = torch.from_numpy(all_specs_train).float()  # shape is (#channels, #samples, #spectralPoints)
-        all_specs_val_tensor = torch.from_numpy(all_specs_val).float()
-        all_specs_train_real_tensor = torch.from_numpy(all_specs_train_real).float()
-        all_specs_val_real_tensor = torch.from_numpy(all_specs_val_real).float()
-        freqCorr_specs_train_tensor = torch.from_numpy(freqCorr_specs_train).float()
-        freqCorr_specs_val_tensor = torch.from_numpy(freqCorr_specs_val).float()
-        freqCorr_specs_train_real_tensor = torch.from_numpy(freqCorr_specs_train_real).float()
-        freqCorr_specs_val_real_tensor = torch.from_numpy(freqCorr_specs_val_real).float()
+        allSpecsTrain_2ChanCompTensor = torch.from_numpy(allSpecsTrain_2ChanComp[:, :, simStart:simFinish]).float()
+        allSpecsTrain_MagTensor = torch.from_numpy(allSpecsTrain_Mag[:, :, simStart:simFinish]).float()
+        trainFreqLabelsTensor = torch.from_numpy(trainFreqLabels).float()
+        trainPhaseLabelsTensor = torch.from_numpy(trainPhaseLabels).float()
 
-        freqLabels_train_tensor = torch.from_numpy(freqLabels_train).float()  # shape is (1, #samples)
-        freqLabels_val_tensor = torch.from_numpy(freqLabels_val).float()
-        phaseLabels_train_tensor = torch.from_numpy(phaseLabels_train).float()
-        phaseLabels_val_tensor = torch.from_numpy(phaseLabels_val).float()
+        allSpecsVal_2ChanCompTensor = torch.from_numpy(allSpecsVal_2ChanComp[:, :, simStart:simFinish]).float()
+        allSpecsVal_MagTensor = torch.from_numpy(allSpecsVal_Mag[:, :, simStart:simFinish]).float()
+        valFreqLabelsTensor = torch.from_numpy(valFreqLabels).float()
+        valPhaseLabelsTensor = torch.from_numpy(valPhaseLabels).float()
 
-        all_specs_test_tensor = torch.from_numpy(all_specs_test).float()
-        all_specs_test_real_tensor = torch.from_numpy(all_specs_test_real).float()
-        freqCorr_specs_test_tensor = torch.from_numpy(freqCorr_specs_test).float()
-        freqCorr_specs_test_real_tensor = torch.from_numpy(freqCorr_specs_test_real).float()
-        freqLabels_test_tensor = torch.from_numpy(freqLabels_test).float()
-        phaseLabels_test_tensor = torch.from_numpy(phaseLabels_test).float()
+        allSpecsTest_2ChanCompTensor = torch.from_numpy(allSpecsTest_2ChanComp[:, :, simStart:simFinish]).float()
+        allSpecsTest_MagTensor = torch.from_numpy(allSpecsTest_Mag[:, :, simStart:simFinish]).float()
+        testFreqLabelsTensor = torch.from_numpy(testFreqLabels).float()
+        testPhaseLabelsTensor = torch.from_numpy(testPhaseLabels).float()
 
-        # ########################################################################################################################
-        # # Set-up Datasets, Dataloaders and Transforms
-        # ########################################################################################################################
+        ########################################################################################################################
+        # Set-up Datasets, Dataloaders and Transforms
+        ########################################################################################################################
+        # set-up arrays for frequency corrected specs after frequency network before phase network
+        freqCorr_specsTrain = np.zeros(shape=(2, trainSpecsFC.shape[0], 2048))
+        freqCorr_specsVal = np.zeros(shape=(2, valSpecsFC.shape[0], 2048))
+        freqCorr_specsTest = np.zeros(shape=(2, testSpecsFC.shape[0], 2048))
+
         for model_name in modelTypes:
-            for net in netTypes:
-                run_name = f'{net}_{dataName}{snr}_{resid[indW]}Water_{model_name}'
+            for net in netTypes:  # nets: frequency and phase
+                run_name = f'{net}_Sim{snr}_{dataTypes[indW]}Water_{model_name}_FINAL'
                 print(run_name)
+                predTrainLabels, predValLabels = 0, 0
 
                 # select based on network type
                 if net == "freq":
-                    if model_name == "Ma_4Convs" or model_name =="Ma_2Convs" or  model_name =="realReal":
-                        train_dataset = FPC_Dataset(all_specs_train_real_tensor, freqLabels_train_tensor)
-                        val_dataset = FPC_Dataset(all_specs_val_real_tensor, freqLabels_val_tensor)
-                        test_dataset = FPC_Dataset(all_specs_test_real_tensor, freqLabels_test_tensor)
-                        TestSpecsSaved = np.zeros((all_specs_test.shape[1], 1, all_specs_test.shape[2]))  # our models
-                    elif model_name=="Tapper":
-                        train_dataset = FPC_Dataset_Tapper(all_specs_train_real_tensor, freqLabels_train_tensor)
-                        val_dataset = FPC_Dataset_Tapper(all_specs_val_real_tensor, freqLabels_val_tensor)
-                        test_dataset = FPC_Dataset_Tapper(all_specs_test_real_tensor, freqLabels_test_tensor)
-                        TestSpecsSaved = np.zeros((all_specs_test.shape[1], all_specs_test.shape[2]))  # tapper model
+                    if (model_name == "Ma_4Convs") or (model_name == "realReal"):
+                        train_dataset = FPC_Dataset_1C(allSpecsTrain_MagTensor,trainFreqLabelsTensor)
+                        val_dataset = FPC_Dataset_1C(allSpecsVal_MagTensor, valFreqLabelsTensor)
+                        test_dataset = FPC_Dataset_1C(allSpecsTest_MagTensor, testFreqLabelsTensor)
+                    elif (model_name == "Tapper"):
+                        train_dataset = FPC_Dataset_Tapper(allSpecsTrain_MagTensor, trainFreqLabelsTensor)
+                        val_dataset = FPC_Dataset_Tapper(allSpecsVal_MagTensor, valFreqLabelsTensor)
+                        test_dataset = FPC_Dataset_Tapper(allSpecsTest_MagTensor, testFreqLabelsTensor)
+                    elif (model_name == "compReal") or ("compComp"):
+                        train_dataset = FPC_Dataset_2C(allSpecsTrain_2ChanCompTensor, trainFreqLabelsTensor)
+                        val_dataset = FPC_Dataset_2C(allSpecsVal_2ChanCompTensor, valFreqLabelsTensor)
+                        test_dataset = FPC_Dataset_2C(allSpecsTest_2ChanCompTensor, testFreqLabelsTensor)
                     else:
-                        train_dataset = FPC_Dataset(all_specs_train_tensor, freqLabels_train_tensor)
-                        val_dataset = FPC_Dataset(all_specs_val_tensor, freqLabels_val_tensor)
-                        test_dataset = FPC_Dataset(all_specs_test_tensor, freqLabels_test_tensor)
-                        TestSpecsSaved = np.zeros((all_specs_test.shape[1], all_specs_test.shape[0], all_specs_test.shape[2]))  # our models
+                        print("Frequency Model Not Found!")
+                        break
 
-                else:
-                    if model_name == "Ma_4Convs" or model_name =="Ma_2Convs" or  model_name =="realReal":
-                        train_dataset = FPC_Dataset(freqCorr_specs_train_real_tensor, phaseLabels_train_tensor)
-                        val_dataset = FPC_Dataset(freqCorr_specs_val_real_tensor, phaseLabels_val_tensor)
-                        test_dataset = FPC_Dataset(freqCorr_specs_test_real_tensor, phaseLabels_test_tensor)
-                        TestSpecsSaved = np.zeros((all_specs_test.shape[1], 1, all_specs_test.shape[2]))  # our models
-                    elif model_name=="Tapper":
-                        train_dataset = FPC_Dataset_Tapper(freqCorr_specs_train_real_tensor, phaseLabels_train_tensor)
-                        val_dataset = FPC_Dataset_Tapper(freqCorr_specs_val_real_tensor, phaseLabels_val_tensor)
-                        test_dataset = FPC_Dataset_Tapper(freqCorr_specs_test_real_tensor, phaseLabels_test_tensor)
-                        TestSpecsSaved = np.zeros((all_specs_test.shape[1], all_specs_test.shape[2]))  # tapper model
+                elif net == "phase":
+                    freqCorr_specsTrain[0, :, :], freqCorr_specsTrain[1, :, :] = trainSpecsFC.real, trainSpecsFC.imag
+                    freqCorr_specsTrain_real = (freqCorr_specsTrain[0, :, :])[np.newaxis, :, :]
+
+                    freqCorr_specsVal[0, :, :], freqCorr_specsVal[1, :, :] = valSpecsFC.real, valSpecsFC.imag
+                    freqCorr_specsVal_real = (freqCorr_specsVal[0, :, :])[np.newaxis, :, :]
+
+                    freqCorr_specsTest[0, :, :], freqCorr_specsTest[1, :, :] = testSpecsFC.real, testSpecsFC.imag
+                    freqCorr_specsTest_real = (freqCorr_specsTest[0, :, :])[np.newaxis, :, :]
+
+                    # create tensor from data
+                    freqCorrTrain_Tensor = torch.from_numpy(freqCorr_specsTrain[:, :, simStart:simFinish]).float()
+                    freqCorrTrain_RealTensor = torch.from_numpy(freqCorr_specsTrain_real[:, :, simStart:simFinish]).float()
+
+                    freqCorrVal_Tensor = torch.from_numpy(freqCorr_specsVal[:, :, simStart:simFinish]).float()
+                    freqCorrVal_RealTensor = torch.from_numpy(freqCorr_specsVal_real[:, :, simStart:simFinish]).float()
+
+                    freqCorr_specs_test_tensor = torch.from_numpy(freqCorr_specsTest[:, :, simStart:simFinish]).float()
+                    freqCorr_specs_test_real_tensor = torch.from_numpy(freqCorr_specsTest_real[:, :, simStart:simFinish]).float()
+
+                    # load data into proper dataloader based on model
+                    if (model_name == "Ma_4Convs") or (model_name == "realReal"):
+                        train_dataset = FPC_Dataset_1C(freqCorrTrain_RealTensor, trainPhaseLabelsTensor)
+                        val_dataset = FPC_Dataset_1C(freqCorrVal_RealTensor, valPhaseLabelsTensor)
+                        test_dataset = FPC_Dataset_1C(freqCorr_specs_test_real_tensor, testPhaseLabelsTensor)
+                    elif (model_name == "Tapper"):
+                        train_dataset = FPC_Dataset_Tapper(freqCorrTrain_RealTensor, trainPhaseLabelsTensor)
+                        val_dataset = FPC_Dataset_Tapper(freqCorrVal_RealTensor, valPhaseLabelsTensor)
+                        test_dataset = FPC_Dataset_Tapper(freqCorr_specs_test_real_tensor, testPhaseLabelsTensor)
+                    elif (model_name == "compReal") or ("compComp"):
+                        train_dataset = FPC_Dataset_2C(freqCorrTrain_Tensor, trainPhaseLabelsTensor)
+                        val_dataset = FPC_Dataset_2C(freqCorrVal_Tensor, valPhaseLabelsTensor)
+                        test_dataset = FPC_Dataset_2C(freqCorr_specs_test_tensor, testPhaseLabelsTensor)
                     else:
-                        train_dataset = FPC_Dataset(freqCorr_specs_train_tensor, phaseLabels_train_tensor)
-                        val_dataset = FPC_Dataset(freqCorr_specs_val_tensor, phaseLabels_val_tensor)
-                        test_dataset = FPC_Dataset(freqCorr_specs_test_tensor, phaseLabels_test_tensor)
-                        TestSpecsSaved = np.zeros((all_specs_test.shape[1], all_specs_test.shape[0], all_specs_test.shape[2]))  # our models
+                        print("Phase Model Not Found!")
+                        break
 
-                train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
-                val_loader = DataLoader(dataset=val_dataset, batch_size=batch_size, shuffle=True)
-                test_loader = DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=True)
+                train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=False)
+                val_loader = DataLoader(dataset=val_dataset, batch_size=batch_size, shuffle=False)
+                test_loader = DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=False)
 
                 ########################################################################################################################
                 # Model and Loss Function
                 ########################################################################################################################
-                if model_name == "Ma_2Convs":
-                    model = maModel2Convs().float()
-                elif model_name == "Ma_4Convs":
+                # load appropriate model
+                if model_name == "Ma_4Convs":
                     model = maModel().float()
                 elif model_name == "Tapper":
                     model = tapperModel().float()
-                elif model_name == "realReal":
-                    model = realIn_realConv().float()
-                elif model_name == "compComp":
-                    model = compIn_compConv().float()
                 elif model_name == "compReal":
                     model = compIn_realConv().float()
+                elif model_name == "compComp":
+                    model = compIn_compConv().float()
+                elif model_name == "realReal":
+                    model = realIn_realConv().float()
                 else:
-                    print("Model not found!")
+                    print("Model Architecture Not Found!")
                     break
 
+                # load model to GPU and set-up optimizer and scheduler
                 model.to(device)
+                # print(f'model number of parameters is {sum(p.numel() for p in model.parameters() if p.requires_grad)}')
                 optimizer = optim.Adam(model.parameters(), lr=learn_r)
-                lr_scheduler = torch.optim.lr_scheduler.MultiplicativeLR(optimizer, lambda lr: 0.9)
+                lr_scheduler = torch.optim.lr_scheduler.MultiplicativeLR(optimizer, lambda lr: 0.5)
 
-        #         ########################################################################################################################
-        #         # Training
-        #         ########################################################################################################################
-        #         best_val_loss = float('inf')
-        #         current_loss = 0.0
-        #         count = 0
-        #         prev_loss = 0.0
-        #         early_stop = False
-        #         print(f'model number of parameters is {sum(p.numel() for p in model.parameters() if p.requires_grad)}')
-        #         model.train()
-        #
-        #         for epoch in range(nmb_epochs):
-        #             epoch_lossesT = []
-        #             epoch_lossesV = []
-        #
-        #             for index, sample in enumerate(train_loader):
-        #                 # FORWARD (Model predictions and loss)
-        #                 specs, Trainlabels = sample
-        #                 specs, Trainlabels = specs.to(device), Trainlabels.to(device)
-        #
-        #                 optimizer.zero_grad()
-        #
-        #                 TrainPred = model(specs.float())
-        #                 TrainLoss = loss_fn(TrainPred, Trainlabels)
-        #
-        #                 # BACKWARD (Optimization) and UPDATE
-        #                 TrainLoss.backward()
-        #                 optimizer.step()
-        #                 epoch_lossesT.append(TrainLoss.item())
-        #
-        #             model.eval()
-        #             with torch.no_grad():
-        #                 for sample in val_loader:
-        #                     ValSpecs, ValLabels = sample
-        #                     ValSpecs, ValLabels = ValSpecs.to(device), ValLabels.to(device)
-        #
-        #                     ValPred = model(ValSpecs.float())
-        #                     val_loss = loss_fn(ValPred, ValLabels)
-        #                     epoch_lossesV.append(val_loss.item())
-        #
-        #                     if (epoch + 1) % lr_scheduler_freq == 0:
-        #                         lr_scheduler.step()
-        #
-        #                 if val_loss < best_val_loss:
-        #                     best_weights = model.state_dict()
-        #                     best_val_loss = val_loss
-        #
-        #                 current_loss = sum(epoch_lossesV) / len(epoch_lossesV)
-        #                 if (((epoch+1) > 25) and ((prev_loss - current_loss) > -0.00000001) and ((prev_loss - current_loss) < 0.00000001)):
-        #                     count = count + 1
-        #                     if count == 5:
-        #                         early_stop = True
-        #                         print('Early Stop Criteria Reached!') # validation loss hasn't improved in 5 consecutive epochs
-        #                         break
-        #                 else:
-        #                     count = 0
-        #
-        #             # Print results every epoch
-        #             # print(f"Training: Predicted {TrainPred} and True {Trainlabels}")
-        #             # print(f"Validation: Predicted {ValPred} and True {ValLabels}")
-        #             print(f'Epoch {epoch + 1}/{nmb_epochs}, Training loss: {sum(epoch_lossesT) / len(epoch_lossesT)} and Validation loss: {sum(epoch_lossesV) / len(epoch_lossesV)}')
-        #             print(f'Validation Loss Improvement of {prev_loss - current_loss}')
-        #             prev_loss = current_loss
-        #
-        #         print(f'Training Complete for {run_name}, Early Stopping {early_stop} at epoch {epoch + 1}')
-        #         print(f'Best Validation Loss was {best_val_loss}')
-        #         print()
-        #
-        #         torch.save(best_weights, f"{run_name}.pt")
-        #
-                # Testing Loop
-                epoch_lossesTest = []
-                loop = 0
-                model.load_state_dict(torch.load(f"{run_name}.pt"))
+                ########################################################################################################################
+                # Training
+                ########################################################################################################################
+                # initialize training loop parameters
+                best_val_loss = float('inf')
+                current_loss, prev_loss = 0.0, 0.0
+                bestModelFound, count, early_stop = False, 0, False
+                allTrainLosses = []
+                allValLosses = []
+
+                # place model in train mode and move through epochs
+                model.train()
+                for epoch in range(nmb_epochs):
+                    loopTrain, loopVal = 0, 0
+                    epoch_lossesT, epoch_lossesV = [], []
+
+                    # for index, sample in enumerate(train_loader):
+                    for sample in (train_loader):
+                        # FORWARD (Model predictions and loss)
+                        Trainspecs, Trainlabels = sample
+                        Trainspecs, Trainlabels = Trainspecs.to(device), Trainlabels.to(device)
+
+                        optimizer.zero_grad()
+                        TrainPred = model(Trainspecs.float())
+                        TrainLoss = loss_fn(TrainPred, Trainlabels)
+
+                        # BACKWARD (Optimization) and UPDATE
+                        TrainLoss.backward()
+                        optimizer.step()
+                        epoch_lossesT.append(TrainLoss.item())
+
+                    if (epoch + 1) % lr_scheduler_freq == 0:
+                        lr_scheduler.step()
+
+                    # validate model in eval mode on validation data
+                    model.eval()
+                    with torch.no_grad():
+                        for sample in val_loader:
+                            ValSpecs, ValLabels = sample
+                            ValSpecs, ValLabels = ValSpecs.to(device), ValLabels.to(device)
+
+                            ValPred = model(ValSpecs.float())
+                            val_loss = loss_fn(ValPred, ValLabels)
+                            epoch_lossesV.append(val_loss.item())
+
+                        if val_loss < best_val_loss:
+                            best_weights = model.state_dict()
+                            best_val_loss = val_loss
+
+                        # early stopping according to training loss to prevent overfitting
+                        current_loss = sum(epoch_lossesV) / len(epoch_lossesV)
+                        if (((epoch + 1) > 25) and (
+                                (prev_loss - current_loss) > -0.00000001) and (
+                                (prev_loss - current_loss) < 0.00000001)):
+                            count = count + 1
+                            if count == 5:
+                                early_stop = True
+                                print(
+                                    'Early Stop Criteria Reached!')  # validation loss hasn't improved in 5 consecutive epochs
+                                break
+                        else:
+                            count = 0
+
+                    # if (epoch ==0) or (epoch%50==0):
+                    print(f'Epoch {epoch + 1}/{nmb_epochs}, Training loss: {sum(epoch_lossesT) / len(epoch_lossesT)} and Validation loss: {sum(epoch_lossesV) / len(epoch_lossesV)}')
+                    print(f'Validation Loss Improvement of {prev_loss - current_loss}')
+
+                    allTrainLosses.append(sum(epoch_lossesT) / len(epoch_lossesT))
+                    allValLosses.append(sum(epoch_lossesV) / len(epoch_lossesV))
+                    prev_loss = current_loss
+
+                print(f'Training Complete for {run_name}, Early Stopping {early_stop} at epoch {epoch + 1}')
+                print(f'Best Validation Loss was {best_val_loss}')
+                print()
+
+                torch.save(best_weights, f"{run_name}_SimForVivo.pt")
+
+                #########################################################################################################################
+                # Test Loop
+                #########################################################################################################################
+                # Testing Loop parameter set-up
+                epoch_lossesTest, predTestLabels = [], np.zeros((testPhaseLabels.shape[1]))
+                loop, ind5 = 0, 0
+                lowestLoss, highestLoss = 100000, 0
+                predLabels = np.zeros(testSpecs.shape[1])
                 model.eval()
-                predLabels = np.zeros(phaseLabels_test.shape[1])
-                TrueLabels = np.zeros(phaseLabels_test.shape[1])
 
                 with torch.no_grad():
                     for sample in test_loader:
+                        # getting specs and labels from dataloader sample and passing them to GPU
                         Testspecs, TestLabels = sample
                         Testspecs, TestLabels = Testspecs.to(device), TestLabels.to(device)
 
+                        # passing specs to model
                         predTest = model(Testspecs.float())
+
+                        # calculating loss (only based on artificially added offsets) and saving predictions
                         test_loss = loss_fn(predTest, TestLabels)
                         epoch_lossesTest.append(test_loss.item())
-
-                        if(Testspecs.cpu().shape[0]==8):
-                            predLabels[loop:loop + 8] = predTest.cpu().flatten()
-                            TrueLabels[loop:loop + 8] = TestLabels.cpu().flatten()
-                            if model_name == "Tapper":
-                                TestSpecsSaved[loop:loop + 8, :] = Testspecs.cpu()
-                            else:
-                                TestSpecsSaved[loop:loop + 8, :, :] = Testspecs.cpu()
-                        else:
-                            predLabels[loop:loop + batch_size] = predTest.cpu().flatten()
-                            TrueLabels[loop:loop + batch_size] = TestLabels.cpu().flatten()
-                            if model_name == "Tapper":
-                                TestSpecsSaved[loop:loop + batch_size, :] = Testspecs.cpu()
-                            else:
-                                TestSpecsSaved[loop:loop + batch_size, :, :] = Testspecs.cpu()
+                        predTestLabels[loop:loop + batch_size] = predTest.cpu().flatten()
                         loop = loop + batch_size
 
-                    print(f'Testing loss: {sum(epoch_lossesTest) / len(epoch_lossesTest)}')
-                    print(f'Testing Complete')
+                        if test_loss > highestLoss:
+                            highestLoss = test_loss
+                        if test_loss < lowestLoss:
+                            lowestLoss = test_loss
+
+                    # print(f'Testing Complete for {run_name_test}')
+                    print(f'Testing Complete for {run_name}')
+                    print(f'Lowest test_loss {lowestLoss}, highest loss {highestLoss} and mean loss {sum(epoch_lossesTest) / len(epoch_lossesTest)}')
                     print()
 
                 # save labels
-                np.save(f"PredLabels_{run_name}.npy", predLabels)
-                np.save(f"TrueLabels_{run_name}.npy", TrueLabels)
-                np.save(f"TestSpecs_{run_name}.npy", TestSpecsSaved)
+                np.save(f"PredLabels_{run_name}.npy", predTestLabels)
