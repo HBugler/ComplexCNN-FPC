@@ -10,106 +10,157 @@ subDir = f"C:/Users/Hanna B/Desktop/FPCFinal2024/SpecsGeneration/Data/InVivo/"
 fileExt = f"_MaxBothIndv_"
 
 # load specs, ground truth labels, and prediction labels
-time = np.load(f"{subDir}GTs/time_InVivo.npy")
-ppm = np.load(f"{subDir}GTs/ppm_InVivo.npy")
+vivoPPM = np.load(f"C:/Users/Hanna B/Desktop/FPCFinal2024/SpecsGeneration/Data/InVivo/GTs/ppm_InVivo.npy")
+vivoTIME = np.load(f"C:/Users/Hanna B/Desktop/FPCFinal2024/SpecsGeneration/Data/InVivo/GTs/time_InVivo.npy")
+size=["Small", "Medium", "Large"]
+vivoSpecsONN = np.load(f"C:/Users/Hanna B/Desktop/FPCFinal2024/SpecsGeneration/Data/InVivo/GTs/allSpecsInVivoON_NoOffsets.npy")
+vivoSpecsOFFN = np.load(f"C:/Users/Hanna B/Desktop/FPCFinal2024/SpecsGeneration/Data/InVivo/GTs/allSpecsInVivoOFF_NoOffsets.npy")
+vivoSpecsONS = np.load(f"C:/Users/Hanna B/Desktop/FPCFinal2024/SpecsGeneration/Data/InVivo/Corrupt/allSpecsInVivoON_{size[0]}Offsets.npy")
+vivoSpecsOFFS = np.load(f"C:/Users/Hanna B/Desktop/FPCFinal2024/SpecsGeneration/Data/InVivo/Corrupt/allSpecsInVivoOFF_{size[0]}Offsets.npy")
+vivoSpecsONM = np.load(f"C:/Users/Hanna B/Desktop/FPCFinal2024/SpecsGeneration/Data/InVivo/Corrupt/allSpecsInVivoON_{size[1]}Offsets.npy")
+vivoSpecsOFFM = np.load(f"C:/Users/Hanna B/Desktop/FPCFinal2024/SpecsGeneration/Data/InVivo/Corrupt/allSpecsInVivoOFF_{size[1]}Offsets.npy")
+vivoSpecsONL = np.load(f"C:/Users/Hanna B/Desktop/FPCFinal2024/SpecsGeneration/Data/InVivo/Corrupt/allSpecsInVivoON_{size[2]}Offsets.npy")
+vivoSpecsOFFL = np.load(f"C:/Users/Hanna B/Desktop/FPCFinal2024/SpecsGeneration/Data/InVivo/Corrupt/allSpecsInVivoOFF_{size[2]}Offsets.npy")
 
-specsNONEON, specsNONEOFF, specsSmallON, specsSmallOFF, specsMedON, specsMedOFF, specsLargeON, specsLargeOFF = loadVivo(subDir, fileExt, model[0], 'specs')
-TruefreqNone, TruephaseNone, TruefreqSmall, TruephaseSmall, TruefreqMed, TruephaseMed, TruefreqLarge, TruephaseLarge = loadVivo(subDir, fileExt, model[0], 'true')
-CrfreqNone, CrphaseNone, CrfreqSmall, CrphaseSmall, CrfreqMed, CrphaseMed, CrfreqLarge, CrphaseLarge = loadVivo(subDir, fileExt, model[0], 'pred')
-MafreqNone, MaphaseNone, MafreqSmall, MaphaseSmall, MafreqMed, MaphaseMed, MafreqLarge, MaphaseLarge = loadVivo(subDir, fileExt, model[1], 'pred')
-TpfreqNone, TpphaseNone, TpfreqSmall, TpphaseSmall, TpfreqMed, TpphaseMed, TpfreqLarge, TpphaseLarge = loadVivo(subDir, fileExt, model[2], 'pred')
+CRfreqLabelsS = np.load(f"C:/Users/Hanna B/Desktop/FPCFinal2024/SpecsGeneration/Data/InVivo/Predictions/PredLabels_Small_freq_InVivo_compReal_Small.npy")
+CRphaseLabelsS = np.load(f"C:/Users/Hanna B/Desktop/FPCFinal2024/SpecsGeneration/Data/InVivo/Predictions/PredLabels_Small_phase_InVivo_compReal_Small.npy")
+CRfreqLabelsM = np.load(f"C:/Users/Hanna B/Desktop/FPCFinal2024/SpecsGeneration/Data/InVivo/Predictions/PredLabels_Medium_freq_InVivo_compReal_Medium.npy")
+CRphaseLabelsM = np.load(f"C:/Users/Hanna B/Desktop/FPCFinal2024/SpecsGeneration/Data/InVivo/Predictions/PredLabels_Medium_phase_InVivo_compReal_Medium.npy")
+CRfreqLabelsL = np.load(f"C:/Users/Hanna B/Desktop/FPCFinal2024/SpecsGeneration/Data/InVivo/Predictions/PredLabels_Large_freq_InVivo_compReal_Large.npy")
+CRphaseLabelsL = np.load(f"C:/Users/Hanna B/Desktop/FPCFinal2024/SpecsGeneration/Data/InVivo/Predictions/PredLabels_Large_phase_InVivo_compReal_Large.npy")
+MafreqLabelsS = np.load(f"C:/Users/Hanna B/Desktop/FPCFinal2024/SpecsGeneration/Data/InVivo/Predictions/PredLabels_Small_freq_InVivo_Ma_4Convs_Small.npy")
+MaphaseLabelsS = np.load(f"C:/Users/Hanna B/Desktop/FPCFinal2024/SpecsGeneration/Data/InVivo/Predictions/PredLabels_Small_phase_InVivo_Ma_4Convs_Small.npy")
+MafreqLabelsM = np.load(f"C:/Users/Hanna B/Desktop/FPCFinal2024/SpecsGeneration/Data/InVivo/Predictions/PredLabels_Medium_freq_InVivo_Ma_4Convs_Medium.npy")
+MaphaseLabelsM = np.load(f"C:/Users/Hanna B/Desktop/FPCFinal2024/SpecsGeneration/Data/InVivo/Predictions/PredLabels_Medium_phase_InVivo_Ma_4Convs_Medium.npy")
+MafreqLabelsL = np.load(f"C:/Users/Hanna B/Desktop/FPCFinal2024/SpecsGeneration/Data/InVivo/Predictions/PredLabels_Large_freq_InVivo_Ma_4Convs_Large.npy")
+MaphaseLabelsL = np.load(f"C:/Users/Hanna B/Desktop/FPCFinal2024/SpecsGeneration/Data/InVivo/Predictions/PredLabels_Large_phase_InVivo_Ma_4Convs_Large.npy")
+TpfreqLabelsS = np.load(f"C:/Users/Hanna B/Desktop/FPCFinal2024/SpecsGeneration/Data/InVivo/Predictions/PredLabels_Small_freq_InVivo_Tapper_Small.npy")
+TpphaseLabelsS = np.load(f"C:/Users/Hanna B/Desktop/FPCFinal2024/SpecsGeneration/Data/InVivo/Predictions/PredLabels_Small_phase_InVivo_Tapper_Small.npy")
+TpfreqLabelsM = np.load(f"C:/Users/Hanna B/Desktop/FPCFinal2024/SpecsGeneration/Data/InVivo/Predictions/PredLabels_Medium_freq_InVivo_Tapper_Medium.npy")
+TpphaseLabelsM = np.load(f"C:/Users/Hanna B/Desktop/FPCFinal2024/SpecsGeneration/Data/InVivo/Predictions/PredLabels_Medium_phase_InVivo_Tapper_Medium.npy")
+TpfreqLabelsL = np.load(f"C:/Users/Hanna B/Desktop/FPCFinal2024/SpecsGeneration/Data/InVivo/Predictions/PredLabels_Large_freq_InVivo_Tapper_Large.npy")
+TpphaseLabelsL = np.load(f"C:/Users/Hanna B/Desktop/FPCFinal2024/SpecsGeneration/Data/InVivo/Predictions/PredLabels_Large_phase_InVivo_Tapper_Large.npy")
 
 ###################################################################################################################
 # Apply Corrections to Data
 ###################################################################################################################
+# assign data
+CRspecsS = np.concatenate((np.copy(vivoSpecsONS), np.copy(vivoSpecsOFFS)), axis=0)
+CRspecsM = np.concatenate((np.copy(vivoSpecsONM), np.copy(vivoSpecsOFFM)), axis=0)
+CRspecsL = np.concatenate((np.copy(vivoSpecsONL), np.copy(vivoSpecsOFFL)), axis=0)
+
+MaspecsS = np.concatenate((np.copy(vivoSpecsONS), np.copy(vivoSpecsOFFS)), axis=0)
+MaspecsM = np.concatenate((np.copy(vivoSpecsONM), np.copy(vivoSpecsOFFM)), axis=0)
+MaspecsL = np.concatenate((np.copy(vivoSpecsONL), np.copy(vivoSpecsOFFL)), axis=0)
+
+TpspecsS = np.concatenate((np.copy(vivoSpecsONS), np.copy(vivoSpecsOFFS)), axis=0)
+TpspecsM = np.concatenate((np.copy(vivoSpecsONM), np.copy(vivoSpecsOFFM)), axis=0)
+TpspecsL = np.concatenate((np.copy(vivoSpecsONL), np.copy(vivoSpecsOFFL)), axis=0)
+
 # convert to time domain FID
-CR_SmallFids = toFids(np.concatenate((np.copy(specsSmallON), np.copy(specsSmallOFF)), axis=0))
-CR_MedFids = toFids(np.concatenate((np.copy(specsMedON), np.copy(specsMedOFF)), axis=0))
-CR_LargeFids = toFids(np.concatenate((np.copy(specsLargeON), np.copy(specsLargeOFF)), axis=0))
+CRfidsS, CRfidsM, CRfidsL = toFids(CRspecsS, 1), toFids(CRspecsM, 1), toFids(CRspecsL, 1)
+MafidsS, MafidsM, MafidsL = toFids(MaspecsS, 1), toFids(MaspecsM, 1), toFids(MaspecsL, 1)
+TpfidsS, TpfidsM, TpfidsL = toFids(TpspecsS, 1), toFids(TpspecsM, 1), toFids(TpspecsL, 1)
 
-Ma_SmallFids = toFids(np.concatenate((np.copy(specsSmallON), np.copy(specsSmallOFF)), axis=0))
-Ma_MedFids = toFids(np.concatenate((np.copy(specsMedON), np.copy(specsMedOFF)), axis=0))
-Ma_LargeFids = toFids(np.concatenate((np.copy(specsLargeON), np.copy(specsLargeOFF)), axis=0))
+# apply frequency and phase correction
+CRfidsS = corrFShift(CRfidsS, vivoTIME, CRfreqLabelsS)
+CRfidsS = corrPShift(CRfidsS, CRphaseLabelsS)
+CRfidsM = corrFShift(CRfidsM, vivoTIME, CRfreqLabelsM)
+CRfidsM = corrPShift(CRfidsM, CRphaseLabelsM)
+CRfidsL = corrFShift(CRfidsL, vivoTIME, CRfreqLabelsL)
+CRfidsL = corrPShift(CRfidsL, CRphaseLabelsL)
 
-Tp_SmallFids = toFids(np.concatenate((np.copy(specsSmallON), np.copy(specsSmallOFF)), axis=0))
-Tp_MedFids = toFids(np.concatenate((np.copy(specsMedON), np.copy(specsMedOFF)), axis=0))
-Tp_LargeFids = toFids(np.concatenate((np.copy(specsLargeON), np.copy(specsLargeOFF)), axis=0))
+MafidsS = corrFShift(MafidsS, vivoTIME, MafreqLabelsS)
+MafidsS = corrPShift(MafidsS, MaphaseLabelsS)
+MafidsM = corrFShift(MafidsM, vivoTIME, MafreqLabelsM)
+MafidsM = corrPShift(MafidsM, MaphaseLabelsM)
+MafidsL = corrFShift(MafidsL, vivoTIME, MafreqLabelsL)
+MafidsL = corrPShift(MafidsL, MaphaseLabelsL)
 
-# apply frequency correction
-CR_SmallFids = corrFShift(CR_SmallFids, time, CrfreqSmall)
-CR_MedFids = corrFShift(CR_MedFids, time, CrfreqMed)
-CR_LargeFids = corrFShift(CR_LargeFids, time, CrfreqLarge)
-
-Ma_SmallFids = corrFShift(Ma_SmallFids, time, MafreqSmall)
-Ma_MedFids = corrFShift(Ma_MedFids, time, MafreqMed)
-Ma_LargeFids = corrFShift(Ma_LargeFids, time, MafreqLarge)
-
-Tp_SmallFids = corrFShift(Tp_SmallFids, time, TpfreqSmall)
-Tp_MedFids = corrFShift(Tp_MedFids, time, TpfreqMed)
-Tp_LargeFids = corrFShift(Tp_LargeFids, time, TpfreqLarge)
-
-# apply phase correction
-CR_SmallFids = corrPShift(CR_SmallFids, CrphaseSmall)
-CR_MedFids = corrPShift(CR_MedFids, CrphaseMed)
-CR_LargeFids = corrPShift(CR_LargeFids, CrphaseLarge)
-
-Ma_SmallFids = corrPShift(Ma_SmallFids, MaphaseSmall)
-Ma_MedFids = corrPShift(Ma_MedFids, MaphaseMed)
-Ma_LargeFids = corrPShift(Ma_LargeFids, MaphaseLarge)
-
-Tp_SmallFids = corrPShift(Tp_SmallFids, TpphaseSmall)
-Tp_MedFids = corrPShift(Tp_MedFids, TpphaseMed)
-Tp_LargeFids = corrPShift(Tp_LargeFids, TpphaseLarge)
+TpfidsS = corrFShift(TpfidsS, vivoTIME, TpfreqLabelsS)
+TpfidsS = corrPShift(TpfidsS, TpphaseLabelsS)
+TpfidsM = corrFShift(TpfidsM, vivoTIME, TpfreqLabelsM)
+TpfidsM = corrPShift(TpfidsM, TpphaseLabelsM)
+TpfidsL = corrFShift(TpfidsL, vivoTIME, TpfreqLabelsL)
+TpfidsL = corrPShift(TpfidsL, TpphaseLabelsL)
 
 # convert to frequency domain SPECS
-CR_SmallSpecs, CR_MedSpecs, CR_LargeSpecs = toSpecs(CR_SmallFids), toSpecs(CR_MedFids), toSpecs(CR_LargeFids)
-Ma_SmallSpecs, Ma_MedSpecs, Ma_LargeSpecs = toSpecs(Ma_SmallFids), toSpecs(Ma_MedFids), toSpecs(Ma_LargeFids)
-Tp_SmallSpecs, Tp_MedSpecs, Tp_LargeSpecs = toSpecs(Tp_SmallFids), toSpecs(Tp_MedFids), toSpecs(Tp_LargeFids)
-ON = CR_SmallSpecs[:int(CR_SmallSpecs.shape[0]/2), :]
-OFF = CR_SmallSpecs[int(CR_SmallSpecs.shape[0]/2):, :]
+CRspecsSFinal, CRspecsMFinal, CRspecsLFinal = toSpecs(CRfidsS, 1), toSpecs(CRfidsM, 1), toSpecs(CRfidsL, 1)
+MaspecsSFinal, MaspecsMFinal, MaspecsLFinal = toSpecs(MafidsS, 1), toSpecs(MafidsM, 1), toSpecs(MafidsL, 1)
+TpspecsSFinal, TpspecsMFinal, TpspecsLFinal = toSpecs(TpfidsS, 1), toSpecs(TpfidsM, 1), toSpecs(TpfidsL, 1)
 
 ########################################################################################################################
 # reform scans and calculate mean specs (ON=1, OFF=0)
 ########################################################################################################################
-CrSmallScans, CrMedScans, CrLargeScans = reformScans(CR_SmallSpecs, CR_MedSpecs, CR_LargeSpecs)
-MaSmallScans, MaMedScans, MaLargeScans = reformScans(Ma_SmallSpecs, Ma_MedSpecs, Ma_LargeSpecs)
-TpSmallScans, TpMedScans, TpLargeScans = reformScans(Tp_SmallSpecs, Tp_MedSpecs, Tp_LargeSpecs)
+CRspecsSmall_scans, CRspecsMed_scans, CRspecsLarge_scans = reformScans(CRspecsSFinal, CRspecsMFinal, CRspecsLFinal)
+CRspecsSmall_Mscans, CRspecsMed_Mscans, CRspecsLarge_Mscans = meanSpec(CRspecsSmall_scans, CRspecsMed_scans, CRspecsLarge_scans)
 
-CrSmallScansMean, CrMedScansMean, CrLargeScansMean = meanSpec(CrSmallScans, CrMedScans, CrLargeScans)
-MaSmallScansMean, MaMedScansMean, MaLargeScansMean = meanSpec(MaSmallScans, MaMedScans, MaLargeScans)
-TpSmallScansMean, TpMedScansMean, TpLargeScansMean = meanSpec(TpSmallScans, TpMedScans, TpLargeScans)
+MaspecsSmall_scans, MaspecsMed_scans, MaspecsLarge_scans = reformScans(MaspecsSFinal, MaspecsMFinal, MaspecsLFinal)
+MaspecsSmall_Mscans, MaspecsMed_Mscans, MaspecsLarge_Mscans = meanSpec(MaspecsSmall_scans, MaspecsMed_scans, MaspecsLarge_scans)
+
+TpspecsSmall_scans, TpspecsMed_scans, TpspecsLarge_scans = reformScans(TpspecsSFinal, TpspecsMFinal, TpspecsLFinal)
+TpspecsSmall_Mscans, TpspecsMed_Mscans, TpspecsLarge_Mscans = meanSpec(TpspecsSmall_scans, TpspecsMed_scans, TpspecsLarge_scans)
 
 ########################################################################################################################
 # metric outputs
 ########################################################################################################################
 setName = ["compReal", "Ma", "Tapper"]
-getMetricsSignificance(CrSmallScansMean.real, MaSmallScansMean.real, TpSmallScansMean.real, ppm, setName, sizeName="Small")
-getMetricsSignificance(CrMedScansMean.real, MaMedScansMean.real, TpMedScansMean.real, ppm, setName, sizeName="Medium")
-getMetricsSignificance(CrLargeScansMean.real, MaLargeScansMean.real, TpLargeScansMean.real, ppm, setName, sizeName="Large")
+getMetricsSignificance(CRspecsSmall_Mscans.real, MaspecsSmall_Mscans.real, TpspecsSmall_Mscans.real, vivoPPM, setName, sizeName="Small")
+getMetricsSignificance(CRspecsMed_Mscans.real, MaspecsMed_Mscans.real, TpspecsMed_Mscans.real, vivoPPM, setName, sizeName="Medium")
+getMetricsSignificance(CRspecsLarge_Mscans.real, MaspecsLarge_Mscans.real, TpspecsLarge_Mscans.real, vivoPPM, setName, sizeName="Large")
 
-for iii in range(0, 36, 3):
+# preview data
+for iii in range(0, 32):
     fig1, (ax1, ax2, ax3) = plt.subplots(3)
-    ax1.plot(ppm, (specsNONEON[160*iii:160*(iii+1), :]-specsNONEOFF[160*iii:160*(iii+1), :]).mean(axis=0).real-0.00001, 'black')
-    ax1.plot(ppm, (specsSmallON[160*iii:160*(iii+1), :]-specsSmallOFF[160*iii:160*(iii+1), :]).mean(axis=0).real, 'purple')
-    ax1.plot(ppm, CrSmallScansMean[iii, :].real+0.00001, 'orange')
-    ax1.plot(ppm, MaSmallScansMean[iii, :].real+0.00002, 'blue')
-    ax1.plot(ppm, TpSmallScansMean[iii, :].real+0.00003, 'green')
-    ax1.set_xlim(0, 8)
-    ax1.set_ylim(-0.00002, 0.00004)
-    ax2.plot(ppm, (specsNONEON[160*(iii+1):160*(iii+2), :]-specsNONEOFF[160*(iii+1):160*(iii+2), :]).mean(axis=0).real-0.00001, 'black')
-    ax2.plot(ppm, (specsSmallON[160*(iii+1):160*(iii+2), :]-specsSmallOFF[160*(iii+1):160*(iii+2), :]).mean(axis=0).real, 'purple')
-    ax2.plot(ppm, CrSmallScansMean[iii+1, :].real+0.00001, 'orange')
-    ax2.plot(ppm, MaSmallScansMean[iii+1, :].real+0.00002, 'blue')
-    ax2.plot(ppm, TpSmallScansMean[iii+1, :].real+0.00003, 'green')
-    ax2.set_xlim(0, 8)
-    ax2.set_ylim(-0.00002, 0.00004)
-    ax3.plot(ppm, (specsNONEON[160*(iii+2):160*(iii+3), :]-specsNONEOFF[160*(iii+2):160*(iii+3), :]).mean(axis=0).real-0.00001, 'black')
-    ax3.plot(ppm, (specsSmallON[160*(iii+2):160*(iii+3), :]-specsSmallOFF[160*(iii+2):160*(iii+3), :]).mean(axis=0).real, 'purple')
-    ax3.plot(ppm, CrSmallScansMean[iii+2, :].real+0.00001, 'orange')
-    ax3.plot(ppm, MaSmallScansMean[iii+2, :].real+0.00002, 'blue')
-    ax3.plot(ppm, TpSmallScansMean[iii+2, :].real+0.00003, 'green')
-    ax3.set_xlim(0, 8)
-    ax3.set_ylim(-0.00002, 0.00004)
+    ax1.set_title("No Artificial Offsets")
+    ax1.plot(vivoPPM, (vivoSpecsONN[160*(iii):160*(iii+1), :]-vivoSpecsOFFN[160*(iii):160*(iii+1), :]).mean(axis=0).real, 'black')
+    ax2.set_title("Small Offsets")
+    ax2.plot(vivoPPM, (vivoSpecsONS[160*(iii):160*(iii+1), :]-vivoSpecsOFFS[160*(iii):160*(iii+1), :]).mean(axis=0).real, 'orange')
+    ax2.plot(vivoPPM, (vivoSpecsONS[160*(iii):160*(iii+1), :]-vivoSpecsOFFS[160*(iii):160*(iii+1), :]).mean(axis=0).real-0.01, 'blue')
+    ax2.plot(vivoPPM, (vivoSpecsONS[160*(iii):160*(iii+1), :]-vivoSpecsOFFS[160*(iii):160*(iii+1), :]).mean(axis=0).real+0.01, 'green')
+    ax3.set_title("Small Offsets compReal CORRECTED")
+    ax3.plot(vivoPPM, CRspecsSmall_Mscans[iii, :].real, 'orange')
+    ax3.plot(vivoPPM, MaspecsSmall_Mscans[iii, :].real-2000, 'blue')
+    ax3.plot(vivoPPM, TpspecsSmall_Mscans[iii, :].real+2000, 'green')
+    plt.show()
+
+    fig2, (ax11, ax22, ax33) = plt.subplots(3)
+    ax11.set_title("No Artificial Offsets")
+    ax11.plot(vivoPPM, (vivoSpecsONN[160*(iii):160*(iii+1), :]-vivoSpecsOFFN[160*(iii):160*(iii+1), :]).mean(axis=0).real, 'black')
+    ax22.set_title("Medium Offsets")
+    ax22.plot(vivoPPM, (vivoSpecsONM[160*(iii):160*(iii+1), :]-vivoSpecsOFFM[160*(iii):160*(iii+1), :]).mean(axis=0).real, 'orange')
+    ax22.plot(vivoPPM, (vivoSpecsONM[160*(iii):160*(iii+1), :]-vivoSpecsOFFM[160*(iii):160*(iii+1), :]).mean(axis=0).real-0.01, 'blue')
+    ax22.plot(vivoPPM, (vivoSpecsONM[160*(iii):160*(iii+1), :]-vivoSpecsOFFM[160*(iii):160*(iii+1), :]).mean(axis=0).real+0.01, 'green')
+    ax33.set_title("Medium Offsets compReal CORRECTED")
+    ax33.plot(vivoPPM, CRspecsMed_Mscans[iii, :].real, 'orange')
+    ax33.plot(vivoPPM, MaspecsMed_Mscans[iii, :].real-2000, 'blue')
+    ax33.plot(vivoPPM, TpspecsMed_Mscans[iii, :].real+2000, 'green')
+    plt.show()
+
+    fig3, (ax111, ax222, ax333) = plt.subplots(3)
+    ax111.set_title("No Artificial Offsets")
+    ax111.plot(vivoPPM, (vivoSpecsONN[160*(iii):160*(iii+1), :]-vivoSpecsOFFN[160*(iii):160*(iii+1), :]).mean(axis=0).real, 'black')
+    ax222.set_title("Large Offsets")
+    ax222.plot(vivoPPM, (vivoSpecsONL[160*(iii):160*(iii+1), :]-vivoSpecsOFFL[160*(iii):160*(iii+1), :]).mean(axis=0).real, 'blue')
+    ax333.set_title("Large Offsets compReal CORRECTED")
+    ax333.plot(vivoPPM, CRspecsLarge_Mscans[iii, :].real, 'orange')
+    ax333.plot(vivoPPM, MaspecsLarge_Mscans[iii, :].real-2000, 'blue')
+    ax333.plot(vivoPPM, TpspecsLarge_Mscans[iii, :].real+2000, 'green')
+    plt.show()
+
+    fig4, (ax111, ax222, ax333) = plt.subplots(3)
+    ax111.set_title("compReal Corrections")
+    ax111.plot(vivoPPM, CRspecsSmall_Mscans[iii, :].real-2000, 'black')
+    ax111.plot(vivoPPM, CRspecsMed_Mscans[iii, :].real, 'purple')
+    ax111.plot(vivoPPM, CRspecsLarge_Mscans[iii, :].real+2000, 'red')
+    ax222.set_title("Ma Corrections")
+    ax222.plot(vivoPPM, MaspecsSmall_Mscans[iii, :].real-2000, 'black')
+    ax222.plot(vivoPPM, MaspecsMed_Mscans[iii, :].real, 'purple')
+    ax222.plot(vivoPPM, MaspecsLarge_Mscans[iii, :].real+2000, 'red')
+    ax333.set_title("Tapper Corrections")
+    ax333.plot(vivoPPM, TpspecsSmall_Mscans[iii, :].real-2000, 'black')
+    ax333.plot(vivoPPM, TpspecsMed_Mscans[iii, :].real, 'purple')
+    ax333.plot(vivoPPM, TpspecsLarge_Mscans[iii, :].real+2000, 'red')
     plt.show()
 
 ########################################################################################################################

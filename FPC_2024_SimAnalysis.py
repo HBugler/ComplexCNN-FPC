@@ -5,33 +5,34 @@ from sklearn.metrics import mean_absolute_error
 ########################################################################################################################
 # Load Data
 ########################################################################################################################
-snrTypes = ["2_5", "5", "10"]
-net = ["Freq", "Phase"]
-dataTypes = ["Mix", "None", "Pos"]
+snrTypes = ["2_5"]   #["2_5", "5", "10"]
+net = ["freq", "phase"]
+dataTypes = ["Mix"]  #["Mix", "None", "Pos"]
 modelTypes = ["compReal", "compComp", "realReal", "Ma_4Convs", "Tapper"]
 subDir = f"C:/Users/Hanna B/Desktop/FPCFinal2024/SpecsGeneration/Data/Simulated/"
+termi = f"_MaxBothIndv_"
 
 for water in dataTypes:
     indW = dataTypes.index(water)
     for snr in snrTypes:
         indS = snrTypes.index(snr)
 
-        TrueLabels_Freq = np.load(f"{subDir}Corrupt/Sim{snrTypes[indS]}_{dataTypes[indW]}/TrueFreqLabels_Sim{snrTypes[indS]}_{dataTypes[indW]}_Test.npy")[:, 0, :]
-        TrueLabels_Phase = np.load(f"{subDir}Corrupt/Sim{snrTypes[indS]}_{dataTypes[indW]}/TruePhaseLabels_Sim{snrTypes[indS]}_{dataTypes[indW]}_Test.npy")[:, 0, :]
+        TrueLabels_Freq = np.load(f"{subDir}Corrupt/Sim{snrTypes[indS]}_{dataTypes[indW]}/TrueFreqLabels_Sim{snrTypes[indS]}_{dataTypes[indW]}_Test.npy")
+        TrueLabels_Phase = np.load(f"{subDir}Corrupt/Sim{snrTypes[indS]}_{dataTypes[indW]}/TruePhaseLabels_Sim{snrTypes[indS]}_{dataTypes[indW]}_Test.npy")
 
         TrueLabels_Freq = np.concatenate((TrueLabels_Freq[1, :], TrueLabels_Freq[0, :]))
         TrueLabels_Phase = np.concatenate((TrueLabels_Phase[1, :], TrueLabels_Phase[0, :]))
 
-        compReal_freqLabels = np.load(f"{subDir}Predictions/PredLabels_{net[0]}_Sim{snrTypes[indS]}_{dataTypes[indW]}Water_{modelTypes[0]}.npy")
-        compReal_phaseLabels = np.load(f"{subDir}Predictions/PredLabels_{net[1]}_Sim{snrTypes[indS]}_{dataTypes[indW]}Water_{modelTypes[0]}.npy")
-        compComp_freqLabels = np.load(f"{subDir}Predictions/PredLabels_{net[0]}_Sim{snrTypes[indS]}_{dataTypes[indW]}Water_{modelTypes[1]}.npy")
-        compComp_phaseLabels = np.load(f"{subDir}Predictions/PredLabels_{net[1]}_Sim{snrTypes[indS]}_{dataTypes[indW]}Water_{modelTypes[1]}.npy")
-        realReal_freqLabels = np.load(f"{subDir}Predictions/PredLabels_{net[0]}_Sim{snrTypes[indS]}_{dataTypes[indW]}Water_{modelTypes[2]}.npy")
-        realReal_phaseLabels = np.load(f"{subDir}Predictions/PredLabels_{net[1]}_Sim{snrTypes[indS]}_{dataTypes[indW]}Water_{modelTypes[2]}.npy")
-        Ma_freqLabels = np.load(f"{subDir}Predictions/PredLabels_{net[0]}_Sim{snrTypes[indS]}_{dataTypes[indW]}Water_{modelTypes[3]}.npy")
-        Ma_phaseLabels = np.load(f"{subDir}Predictions/PredLabels_{net[1]}_Sim{snrTypes[indS]}_{dataTypes[indW]}Water_{modelTypes[3]}.npy")
-        Tapper_freqLabels = np.load(f"{subDir}Predictions/PredLabels_{net[0]}_Sim{snrTypes[indS]}_{dataTypes[indW]}Water_{modelTypes[4]}.npy")
-        Tapper_phaseLabels = np.load(f"{subDir}Predictions/PredLabels_{net[1]}_Sim{snrTypes[indS]}_{dataTypes[indW]}Water_{modelTypes[4]}.npy")
+        compReal_freqLabels = np.load(f"{subDir}Predictions/PredLabels_{net[0]}_Sim{snrTypes[indS]}_{dataTypes[indW]}Water_{modelTypes[0]}{termi}.npy")
+        compReal_phaseLabels = np.load(f"{subDir}Predictions/PredLabels_{net[1]}_Sim{snrTypes[indS]}_{dataTypes[indW]}Water_{modelTypes[0]}{termi}.npy")
+        compComp_freqLabels = np.load(f"{subDir}Predictions/PredLabels_{net[0]}_Sim{snrTypes[indS]}_{dataTypes[indW]}Water_{modelTypes[1]}{termi}.npy")
+        compComp_phaseLabels = np.load(f"{subDir}Predictions/PredLabels_{net[1]}_Sim{snrTypes[indS]}_{dataTypes[indW]}Water_{modelTypes[1]}{termi}.npy")
+        realReal_freqLabels = np.load(f"{subDir}Predictions/PredLabels_{net[0]}_Sim{snrTypes[indS]}_{dataTypes[indW]}Water_{modelTypes[2]}{termi}.npy")
+        realReal_phaseLabels = np.load(f"{subDir}Predictions/PredLabels_{net[1]}_Sim{snrTypes[indS]}_{dataTypes[indW]}Water_{modelTypes[2]}{termi}.npy")
+        Ma_freqLabels = np.load(f"{subDir}Predictions/PredLabels_{net[0]}_Sim{snrTypes[indS]}_{dataTypes[indW]}Water_{modelTypes[3]}{termi}.npy")
+        Ma_phaseLabels = np.load(f"{subDir}Predictions/PredLabels_{net[1]}_Sim{snrTypes[indS]}_{dataTypes[indW]}Water_{modelTypes[3]}{termi}.npy")
+        Tapper_freqLabels = np.load(f"{subDir}Predictions/PredLabels_{net[0]}_Sim{snrTypes[indS]}_{dataTypes[indW]}Water_{modelTypes[4]}{termi}.npy")
+        Tapper_phaseLabels = np.load(f"{subDir}Predictions/PredLabels_{net[1]}_Sim{snrTypes[indS]}_{dataTypes[indW]}Water_{modelTypes[4]}{termi}.npy")
 
         print(f'SNR {snrTypes[indS]} {dataTypes[indW]} Water')
         print(f'MAEs')

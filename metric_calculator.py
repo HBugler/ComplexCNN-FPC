@@ -1,6 +1,7 @@
 ## This script calculates the metrics for the challenge
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.signal import find_peaks
 
 
 
@@ -169,21 +170,27 @@ def calculate_NewLW(x, ppm):        # HB's implementation of the Linewidth code 
     # for i in range(0, x.shape[0]):
     for i in range(0, x.shape[0]):
         i_ppm = np.ndarray.round(ppm, 2)
-        failed_bound = False
+        failed_bound, inc = False, 0
+        leftFlag, rightFlag = False, False
 
-        metab_indClose, metab_indFar = np.amax(np.where(i_ppm == 2.60)), np.amin(np.where(i_ppm == 3.40)) # was 2.8 to 3.2
-        mean_specs = np.real(x[i,:])
-        ppm_temp = i_ppm
+        while True: # increase bounds if needed
+            metab_indClose, metab_indFar = np.amin(np.where(i_ppm >= 2.60-inc)), np.amax(np.where(i_ppm <= 3.40+inc)) # was 2.8 to 3.2
+            mean_specs = np.real(x[i,:])
+            ppm_temp = i_ppm
 
-        MAXy = np.amax(mean_specs[metab_indClose:metab_indFar], axis=0)         # max y value
-        MINy = np.amin(mean_specs[metab_indClose:metab_indFar], axis=0)
-        Metab_x = mean_specs[metab_indClose:metab_indFar]                       # specs in region of interest
-        ppm_temp1 = ppm_temp[metab_indClose:metab_indFar]                       # ppm in region of interest
-        MetabMAX_x = np.array(np.argmax(Metab_x, axis=0))                       # index of max y value
-        RPB_ppm, LPB_ppm = ppm_temp1[:MetabMAX_x], ppm_temp1[MetabMAX_x:]       # ppm for left and right of max y value
-        RPB_x, LPB_x = Metab_x[:MetabMAX_x], Metab_x[MetabMAX_x:]               # specs for left and right of max y value
+            MAXy = np.amax(mean_specs[metab_indClose:metab_indFar], axis=0)         # max y value
+            MINy = np.amin(mean_specs[metab_indClose:metab_indFar], axis=0)
+            Metab_x = mean_specs[metab_indClose:metab_indFar]                       # specs in region of interest
+            ppm_temp1 = ppm_temp[metab_indClose:metab_indFar]                       # ppm in region of interest
+            MetabMAX_x = np.array(np.argmax(Metab_x, axis=0))                       # index of max y value
+            RPB_ppm, LPB_ppm = ppm_temp1[:MetabMAX_x], ppm_temp1[MetabMAX_x:]       # ppm for left and right of max y value
+            RPB_x, LPB_x = Metab_x[:MetabMAX_x], Metab_x[MetabMAX_x:]               # specs for left and right of max y value
+            if RPB_x.size and LPB_x.size:
+                break
+            else:
+                inc=inc+0.1
 
-        try:
+        try:    # Find where curve is greater and lesser than FWHM
             LHM_Greater = np.where((LPB_x) > (((MAXy - MINy) / 2) + MINy))[0]
             RHM_Greater = np.where((RPB_x) > (((MAXy - MINy) / 2) + MINy))[0]
             LHM_Lesser = np.where((LPB_x) < (((MAXy - MINy) / 2) + MINy))[0]
@@ -193,7 +200,7 @@ def calculate_NewLW(x, ppm):        # HB's implementation of the Linewidth code 
             failed_bound = True
             pass
 
-        leftFlag, rightFlag = False, False
+        # Find most probable FWHM given options (make sure not just noisy point)
         for l in range(len(LPB_x), -1, -1):
             if (l in LHM_Greater) and ((l+1) in LHM_Lesser) and ((l+2) in LHM_Lesser) and ((l+3) in LHM_Lesser) and ((l+4) in LHM_Lesser) and ((l+5) in LHM_Lesser):    # and ((l+4) in LHM_Lesser) and ((l+5) in LHM_Lesser)
                 left_ind = l
@@ -210,6 +217,7 @@ def calculate_NewLW(x, ppm):        # HB's implementation of the Linewidth code 
 
         if (rightFlag==False):
             right_ind = np.argmin(np.where((RPB_x) > (((MAXy - MINy) / 2) + MINy))[0])
+
 
         if failed_bound==False:
             left_ppm = LPB_ppm[left_ind]
@@ -238,3 +246,74 @@ def calculate_NewLW(x, ppm):        # HB's implementation of the Linewidth code 
     return linewidths, sum(linewidths)/len(linewidths), stds
 
 
+def calculate_ModelledLW(x, ppm):        # HB's implementation of the Linewidth code (not from GitHub)
+    linewidths=[]
+
+    # for i in range(0, x.shape[0]):
+    for i in range(0, x.shape[0]):
+        i_ppm = np.ndarray.round(ppm, 2)
+        mean_specs = np.real(x[i, :])
+        loop, decE, decO = 0, 0, 0
+
+        # large window to narrow down peak location
+        while True:
+            metab_indCloseGen, metab_indFarGen = np.amin(np.where(i_ppm >= 2.50+decE)), np.amax(np.where(i_ppm <= 3.50-decO)) # was 2.8 to 3.2
+            Metab_xGen = mean_specs[metab_indCloseGen:metab_indFarGen]
+            ppm_xGen = i_ppm[metab_indCloseGen:metab_indFarGen]
+
+            # fit 4th degree to determine small window location
+            poly4thGenCoeffs = np.polyfit(ppm_xGen, Metab_xGen, 4)
+            poly4thGenFit = np.polyval(poly4thGenCoeffs, ppm_xGen)
+
+            MinsGen = find_peaks(-poly4thGenFit)                             # maxima of the negative signal
+
+            if MinsGen[0].shape[0]>1:
+                MinGen_ppm = ppm_xGen[MinsGen[0][0]] + 0.1
+                MaxGen_ppm = ppm_xGen[MinsGen[0][1]] - 0.1
+                if MinGen_ppm > MaxGen_ppm:
+                    temp = MaxGen_ppm
+                    MaxGen_ppm = MinGen_ppm
+                    MinGen_ppm = temp
+                break
+
+            if loop%2==0:
+                decE = decE + 0.05
+            else:
+                decO = decO + 0.05
+
+            loop = loop + 1
+
+        # smaller window to model peak shape
+        metab_indClose, metab_indFar = np.amin(np.where(i_ppm >= MinGen_ppm)), np.amax(np.where(i_ppm <= MaxGen_ppm)) # was 2.8 to 3.2
+        Metab_x = mean_specs[metab_indClose:metab_indFar]                # specs in region of interest
+        ppm_x = i_ppm[metab_indClose:metab_indFar]
+        print(ppm_x.shape)
+        print(Metab_x.shape)
+        poly2ndCoeffs = np.polyfit(ppm_x, Metab_x, 2)
+        poly2ndFit = np.polyval(poly2ndCoeffs, ppm_x)
+
+        MAXy = np.amax(poly2ndFit, axis=0)         # max y value
+        MINy = np.amin(poly2ndFit, axis=0)         # min y value
+        MetabMAX_x = np.array(np.argmax(poly2ndFit, axis=0))                            # index of max y value
+        Lower_ppm, higher_ppm = ppm_x[:MetabMAX_x], ppm_x[MetabMAX_x:]                  # ppm for left and right of max y value
+        Lower_specs, higher_specs = poly2ndFit[:MetabMAX_x], poly2ndFit[MetabMAX_x:]    # specs for left and right of max y value
+
+        LowerBound = np.where((Lower_specs) > (((MAXy + MINy) / 2)))[0]
+        HigherBound = np.where((higher_specs) < (((MAXy + MINy) / 2)))[0]
+
+        low_ppm = Lower_ppm[LowerBound[0]]
+        high_ppm = higher_ppm[HigherBound[0]]
+        linewidths.append(high_ppm - low_ppm)
+
+        # fig1, ax1 = plt.subplots(1)
+        # ax1.plot(ppm_xGen, Metab_xGen, 'black')
+        # ax1.plot(ppm_xGen, poly4thGenFit, 'purple')
+        # ax1.plot(ppm_x, poly2ndFit, 'green')
+        # ax1.plot(low_ppm, (((poly2ndFit[MetabMAX_x] - MINy) / 2) + MINy), marker='x', color='red')
+        # ax1.plot(high_ppm, (((poly2ndFit[MetabMAX_x] - MINy) / 2) + MINy), marker='x', color='red')
+        # ax1.invert_xaxis()
+        # plt.show()
+
+    stds = np.std(linewidths)
+
+    return linewidths, sum(linewidths)/len(linewidths), stds
