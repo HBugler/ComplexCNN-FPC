@@ -19,11 +19,11 @@ def loadSimGTs(waterType):
     simFolder = "C:/Users/Hanna B/Desktop/FPCFinal2024/SpecsGeneration/Data/Simulated/GTs/"
 
     if waterType== "Mix":
-        ON_GT = np.loadtxt(f"{simFolder}Development/Water{waterType}/fidsON_{waterType}W_GABAPlus_DevSet.csv", dtype=complex, delimiter=",")
-        OFF_GT = np.loadtxt(f"{simFolder}Development/Water{waterType}/fidsOFF_{waterType}W_GABAPlus_DevSet.csv", dtype=complex, delimiter=",")
-    else:
         ON_GT = np.load(f"{simFolder}Development/Water{waterType}/fidsON_{waterType}W_GABAPlus_DevSet.npy")
         OFF_GT = np.load(f"{simFolder}Development/Water{waterType}/fidsOFF_{waterType}W_GABAPlus_DevSet.npy")
+    else:
+        ON_GT = np.loadtxt(f"{simFolder}Development/Water{waterType}/fidsON_{waterType}W_GABAPlus_DevSet.csv", dtype=complex, delimiter=",")
+        OFF_GT = np.loadtxt(f"{simFolder}Development/Water{waterType}/fidsOFF_{waterType}W_GABAPlus_DevSet.csv", dtype=complex, delimiter=",")
     ON_GTFinal = np.swapaxes(ON_GT, axis1=1, axis2=0)
     OFF_GTFinal = np.swapaxes(OFF_GT, axis1=1, axis2=0)
     return ON_GTFinal, OFF_GTFinal
@@ -37,40 +37,34 @@ def loadVivoGTs():
              all_specs_OFF: fids for 'OFF' subspectrum [numScans*160Trans, specPoints]
     '''
 
-    InVivoGTs_dir = "C:/Users/Hanna B/Desktop/Research/CodeAndData/ISBI Challenge/ISBI In Vivo Data/track_02_big_gaba_GANNET/"
+    InVivoGTs_dir = "C:/Users/Hanna B/FID-A/"
     eng1 = matlab.engine.start_matlab()
-    G5_fids_ON, G5_fids_OFF = np.empty((160 * 12, 2048), dtype=complex), np.empty((160 * 12, 2048), dtype=complex)
-    G7_fids_ON, G7_fids_OFF = np.empty((160 * 12, 2048), dtype=complex), np.empty((160 * 12, 2048), dtype=complex)
-    G8_fids_ON, G8_fids_OFF = np.empty((160 * 12, 2048), dtype=complex), np.empty((160 * 12, 2048), dtype=complex)
-    # to denote ON (value=1) and OFF (value=0) in order 1, 0, 1, 0....
-    interleave = np.squeeze(np.array(eng1.load(f"{InVivoGTs_dir}G5_MP/S01_GABA_68_final.mat")['MRS_struct']['fids']['ON_OFF']))
-    interON, interOFF, indTrans = 0, 0, 0
-    # sort scans and subspectra
+    G5_fids_ON, G5_fids_OFF = np.empty((2048, 160 * 12), dtype=complex), np.empty((2048, 160 * 12), dtype=complex)
+    G7_fids_ON, G7_fids_OFF = np.empty((2048, 160 * 12), dtype=complex), np.empty((2048, 160 * 12), dtype=complex)
+    G8_fids_ON, G8_fids_OFF = np.empty((2048, 160 * 12), dtype=complex), np.empty((2048, 160 * 12), dtype=complex)
+    indTrans = 160
     for i in range(1, 13):
         if i < 10:
             # (2048, 320)
-            GABA_fids5 = np.array(eng1.load(f"{InVivoGTs_dir}G5_MP/S0{i}_GABA_68_final.mat")['MRS_struct']['fids']['data'])
-            GABA_fids7 = np.array(eng1.load(f"{InVivoGTs_dir}G7_MP/S0{i}_GABA_68_final.mat")['MRS_struct']['fids']['data'])
-            GABA_fids8 = np.array(eng1.load(f"{InVivoGTs_dir}G8_MP/S0{i}_GABA_68_final.mat")['MRS_struct']['fids']['data'])
+            GABA_fids5 = np.array(eng1.load(f"{InVivoGTs_dir}G5_S0{i}_GABA_68.mat")['fids'])
+            GABA_fids7 = np.array(eng1.load(f"{InVivoGTs_dir}G7_S0{i}_GABA_68.mat")['fids'])
+            GABA_fids8 = np.array(eng1.load(f"{InVivoGTs_dir}G8_S0{i}_GABA_68.mat")['fids'])
         else:
-            GABA_fids5 = np.array(eng1.load(f"{InVivoGTs_dir}G5_MP/S{i}_GABA_68_final.mat")['MRS_struct']['fids']['data'])
-            GABA_fids7 = np.array(eng1.load(f"{InVivoGTs_dir}G7_MP/S{i}_GABA_68_final.mat")['MRS_struct']['fids']['data'])
-            GABA_fids8 = np.array(eng1.load(f"{InVivoGTs_dir}G8_MP/S{i}_GABA_68_final.mat")['MRS_struct']['fids']['data'])
-        interON, interOFF = 0, 0
-        for k in range(0, 320):
-            if interleave[k] == 1:
-                G5_fids_ON[indTrans + interON, :] = GABA_fids5[:, k]
-                G7_fids_ON[indTrans + interON, :] = GABA_fids7[:, k]
-                G8_fids_ON[indTrans + interON, :] = GABA_fids8[:, k]
-                interON = interON + 1
-            else:
-                G5_fids_OFF[indTrans + interOFF, :] = GABA_fids5[:, k]
-                G7_fids_OFF[indTrans + interOFF, :] = GABA_fids7[:, k]
-                G8_fids_OFF[indTrans + interOFF, :] = GABA_fids8[:, k]
-                interOFF = interOFF + 1
-        indTrans = indTrans + 160
-    all_specs_ON = np.concatenate((toSpecs(G5_fids_ON), toSpecs(G7_fids_ON), toSpecs(G8_fids_ON)), axis=0)
-    all_specs_OFF = np.concatenate((toSpecs(G5_fids_OFF), toSpecs(G7_fids_OFF), toSpecs(G8_fids_OFF)), axis=0)
+            GABA_fids5 = np.array(eng1.load(f"{InVivoGTs_dir}G5_S{i}_GABA_68.mat")['fids'])
+            GABA_fids7 = np.array(eng1.load(f"{InVivoGTs_dir}G7_S{i}_GABA_68.mat")['fids'])
+            GABA_fids8 = np.array(eng1.load(f"{InVivoGTs_dir}G8_S{i}_GABA_68.mat")['fids'])
+
+        G5_fids_ON[:, indTrans * (i - 1):indTrans * (i)] = GABA_fids5[:, :, 0]
+        G7_fids_ON[:, indTrans * (i - 1):indTrans * (i)] = GABA_fids7[:, :, 0]
+        G8_fids_ON[:, indTrans * (i - 1):indTrans * (i)] = GABA_fids8[:, :, 0]
+        G5_fids_OFF[:, indTrans * (i - 1):indTrans * (i)] = GABA_fids5[:, :, 1]
+        G7_fids_OFF[:, indTrans * (i - 1):indTrans * (i)] = GABA_fids7[:, :, 1]
+        G8_fids_OFF[:, indTrans * (i - 1):indTrans * (i)] = GABA_fids8[:, :, 1]
+
+    all_specs_ON = np.concatenate((toSpecs(G5_fids_ON, 0), toSpecs(G7_fids_ON, 0), toSpecs(G8_fids_ON, 0)), axis=1)
+    all_specs_OFF = np.concatenate((toSpecs(G5_fids_OFF, 0), toSpecs(G7_fids_OFF, 0), toSpecs(G8_fids_OFF, 0)), axis=1)
+    all_specs_ON = np.swapaxes(all_specs_ON, 0, 1)
+    all_specs_OFF = np.swapaxes(all_specs_OFF, 0, 1)
     np.save("allSpecsInVivoON_NoOffsets.npy", all_specs_ON)
     np.save("allSpecsInVivoOFF_NoOffsets.npy", all_specs_OFF)
 
@@ -96,17 +90,17 @@ def loadVivo(subDir, fileExt, modelName, type):
 
     if type=="specs":
         # freq -> ON, phase -> OFF
-        freqNone = np.load(f"{subDir}Corrupt/allSpecsInVivoON_NoOffsets.npy")
-        phaseNone = np.load(f"{subDir}Corrupt/allSpecsInVivoOFF_NoOffsets.npy")
+        # freqNone = np.load(f"{subDir}Corrupt/allSpecsInVivoON_NoOffsets.npy")
+        # phaseNone = np.load(f"{subDir}Corrupt/allSpecsInVivoOFF_NoOffsets.npy")
         freqSmall = np.load(f"{subDir}Corrupt/allSpecsInVivoON_SmallOffsets.npy")
         phaseSmall = np.load(f"{subDir}Corrupt/allSpecsInVivoOFF_SmallOffsets.npy")
-        freqMed = np.load(f"{subDir}Corrupt/allSpecsInVivoON_MedOffsets.npy")
-        phaseMed = np.load(f"{subDir}Corrupt/allSpecsInVivoOFF_MedOffsets.npy")
+        freqMed = np.load(f"{subDir}Corrupt/allSpecsInVivoON_MediumOffsets.npy")
+        phaseMed = np.load(f"{subDir}Corrupt/allSpecsInVivoOFF_MediumOffsets.npy")
         freqLarge = np.load(f"{subDir}Corrupt/allSpecsInVivoON_LargeOffsets.npy")
         phaseLarge = np.load(f"{subDir}Corrupt/allSpecsInVivoOFF_LargeOffsets.npy")
     elif type=="pred":
-        freqNone = np.load(f"{subDir}Predictions/PredLabels_freq_InVivo_{modelName}{fileExt}NONE.npy")
-        phaseNone = np.load(f"{subDir}Predictions/PredLabels_phase_InVivo_{modelName}{fileExt}NONE.npy")
+        # freqNone = np.load(f"{subDir}Predictions/PredLabels_freq_InVivo_{modelName}{fileExt}NONE.npy")
+        # phaseNone = np.load(f"{subDir}Predictions/PredLabels_phase_InVivo_{modelName}{fileExt}NONE.npy")
         freqSmall = np.load(f"{subDir}Predictions/PredLabels_freq_InVivo_{modelName}{fileExt}Small.npy")
         phaseSmall = np.load(f"{subDir}Predictions/PredLabels_phase_InVivo_{modelName}{fileExt}Small.npy")
         freqMed = np.load(f"{subDir}Predictions/PredLabels_freq_InVivo_{modelName}{fileExt}Medium.npy")
@@ -114,22 +108,24 @@ def loadVivo(subDir, fileExt, modelName, type):
         freqLarge = np.load(f"{subDir}Predictions/PredLabels_freq_InVivo_{modelName}{fileExt}Large.npy")
         phaseLarge = np.load(f"{subDir}Predictions/PredLabels_phase_InVivo_{modelName}{fileExt}Large.npy")
     else:
-        freqNone = np.load(f"{subDir}Corrupt/FnoiseInVivo_NoOffsets.npy")
-        phaseNone = np.load(f"{subDir}Corrupt/PnoiseInVivo_NoOffsets.npy")
+        # freqNone = np.load(f"{subDir}Corrupt/FnoiseInVivo_NoOffsets.npy")
+        # phaseNone = np.load(f"{subDir}Corrupt/PnoiseInVivo_NoOffsets.npy")
         freqSmall = np.load(f"{subDir}Corrupt/FnoiseInVivo_SmallOffsets.npy")
         phaseSmall = np.load(f"{subDir}Corrupt/PnoiseInVivo_SmallOffsets.npy")
-        freqMed = np.load(f"{subDir}Corrupt/FnoiseInVivo_MedOffsets.npy")
-        phaseMed = np.load(f"{subDir}Corrupt/PnoiseInVivo_MedOffsets.npy")
+        freqMed = np.load(f"{subDir}Corrupt/FnoiseInVivo_MediumOffsets.npy")
+        phaseMed = np.load(f"{subDir}Corrupt/PnoiseInVivo_MediumOffsets.npy")
         freqLarge = np.load(f"{subDir}Corrupt/FnoiseInVivo_LargeOffsets.npy")
         phaseLarge = np.load(f"{subDir}Corrupt/PnoiseInVivo_LargeOffsets.npy")
-        freqNone = np.concatenate((freqNone[1, :], freqNone[0, :]))
-        phaseNone = np.concatenate((phaseNone[1, :], phaseNone[0, :]))
+        # freqNone = np.concatenate((freqNone[1, :], freqNone[0, :]))
+        # phaseNone = np.concatenate((phaseNone[1, :], phaseNone[0, :]))
         freqSmall = np.concatenate((freqSmall[1, :], freqSmall[0, :]))
         phaseSmall = np.concatenate((phaseSmall[1, :], phaseSmall[0, :]))
         freqMed = np.concatenate((freqMed[1, :], freqMed[0, :]))
         phaseMed = np.concatenate((phaseMed[1, :], phaseMed[0, :]))
         freqLarge = np.concatenate((freqLarge[1, :], freqLarge[0, :]))
         phaseLarge = np.concatenate((phaseLarge[1, :], phaseLarge[0, :]))
+    freqNone = np.load(f"{subDir}Corrupt/FnoiseInVivo_NoOffsets.npy")
+    phaseNone = np.load(f"{subDir}Corrupt/PnoiseInVivo_NoOffsets.npy")
     return freqNone, phaseNone, freqSmall, phaseSmall, freqMed, phaseMed, freqLarge, phaseLarge
 
 def simScans(waterType, numTrans):
@@ -147,25 +143,27 @@ def simScans(waterType, numTrans):
     OFFfids = np.repeat(OFF_GT, numTrans, axis=0)
     return ONfids, OFFfids
 
-def toFids(specs):
+def toFids(specs, axis):
     '''
     Convert to Fids (time domain)
 
     :param specs: [numSamples, specPoints]
+           axis: *provided in case specs axes are swapped*
     :return: fids: [numSamples, specPoints]
     '''
 
-    return np.fft.fft(np.fft.fftshift(specs, axes=1), axis=1)
+    return np.fft.fft(np.fft.fftshift(specs, axes=axis), axis=axis)
 
-def toSpecs(fids):
+def toSpecs(fids, axis):
     '''
     Convert to Specs (frequency domain)
 
     :param fids: [numSamples, specPoints]
+           axis: *provided in case fids axes are swapped*
     :return: specs: [numSamples, specPoints]
     '''
 
-    return np.fft.fftshift(np.fft.ifft(fids, axis=1), axes=1)
+    return np.fft.fftshift(np.fft.ifft(fids, axis=axis), axes=axis)
 
 def flipSpecs(specs):
     '''
@@ -206,7 +204,10 @@ def addFShift(ONfids, OFFfids, time, shiftRange):
              OFFfids: [numSamples, specPoints] **with frequency shifts**
     '''
 
-    Fnoise = np.random.uniform(low=-shiftRange, high=shiftRange, size=(2, ONfids.shape[0], 1)).repeat(ONfids.shape[1], axis=2)
+    # Fnoise = np.random.uniform(low=-shiftRange, high=shiftRange, size=(2, ONfids.shape[0], 1)).repeat(ONfids.shape[1], axis=2)
+    Fnoise1 = np.random.uniform(low=10, high=20, size=(2, int(ONfids.shape[0]/2), 1)).repeat(ONfids.shape[1], axis=2)
+    Fnoise2 = np.random.uniform(low=-20, high=-10, size=(2, int(ONfids.shape[0]/2), 1)).repeat(ONfids.shape[1], axis=2)
+    Fnoise = np.concatenate((Fnoise1, Fnoise2), axis=1)
     ONfids = ONfids * np.exp(-1j * time * Fnoise[1, :, :] * 2 * math.pi)
     OFFfids = OFFfids * np.exp(-1j * time * Fnoise[0, :, :] * 2 * math.pi)
     return ONfids, OFFfids, Fnoise[:, :, 0]
@@ -222,7 +223,10 @@ def addPShift(ONfids, OFFfids, shiftRange):
              OFFfids: [numSamples, specPoints] **with phase shifts**
     '''
 
-    PNoise = np.random.uniform(low=-shiftRange, high=shiftRange, size=(2, ONfids.shape[0], 1)).repeat(ONfids.shape[1], axis=2)
+    # PNoise = np.random.uniform(low=-shiftRange, high=shiftRange, size=(2, ONfids.shape[0], 1)).repeat(ONfids.shape[1], axis=2)
+    PNoise1 = np.random.uniform(low=45, high=90, size=(2, int(ONfids.shape[0]/2), 1)).repeat(ONfids.shape[1], axis=2)
+    PNoise2 = np.random.uniform(low=-90, high=-45, size=(2, int(ONfids.shape[0]/2), 1)).repeat(ONfids.shape[1], axis=2)
+    PNoise = np.concatenate((PNoise1, PNoise2), axis=1)
     ONfids = ONfids * np.exp(-1j * PNoise[1, :, :] * math.pi / 180)
     OFFfids = OFFfids * np.exp(-1j * PNoise[0, :, :] * math.pi / 180)
     return ONfids, OFFfids, PNoise[:, :, 0]
@@ -309,13 +313,13 @@ def getMetricsSignificance(specsSmall1, specsSmall2, specsSmall3, ppm, setName, 
             setName: string (model name)
             sizeName: string (offset size name)
     '''
-
+    # find appropriate linewidth function
     allSnrSmall1, meanSnrSmall1, stdSnrSmall1 = calculate_snr(specsSmall1, ppm)
-    allLwSmall1, meanLwSmall1, stdLwSmall1 = calculate_NewLW(specsSmall1, ppm)
+    allLwSmall1, meanLwSmall1, stdLwSmall1 = calculate_linewidth(specsSmall1, ppm)
     allSnrSmall2, meanSnrSmall2, stdSnrSmall2 = calculate_snr(specsSmall2, ppm)
-    allLwSmall2, meanLwSmall2, stdLwSmall2 = calculate_NewLW(specsSmall2, ppm)
+    allLwSmall2, meanLwSmall2, stdLwSmall2 = calculate_linewidth(specsSmall2, ppm)
     allSnrSmall3, meanSnrSmall3, stdSnrSmall3 = calculate_snr(specsSmall3, ppm)
-    allLwSmall3, meanLwSmall3, stdLwSmall3 = calculate_NewLW(specsSmall3, ppm)
+    allLwSmall3, meanLwSmall3, stdLwSmall3 = calculate_linewidth(specsSmall3, ppm)
     snrStat12, snrPvalue12 = stats.wilcoxon(allSnrSmall1, allSnrSmall2)
     snrStat13, snrPvalue13 = stats.wilcoxon(allSnrSmall1, allSnrSmall3)
     snrStat23, snrPvalue23 = stats.wilcoxon(allSnrSmall2, allSnrSmall3)
@@ -334,6 +338,9 @@ def getMetricsSignificance(specsSmall1, specsSmall2, specsSmall3, ppm, setName, 
     print(f'LW pvalue {sizeName} {setName[0]} compared to {setName[1]} {lwPvalue12}')
     print(f'LW pvalue {sizeName} {setName[0]} compared to {setName[2]} {lwPvalue13}')
     print(f'LW pvalue {sizeName} {setName[1]} compared to {setName[2]} {lwPvalue23}')
+
+    return meanSnrSmall1, stdSnrSmall1, meanLwSmall1, stdLwSmall1, meanSnrSmall2, stdSnrSmall2, \
+           meanLwSmall2, stdLwSmall2, meanSnrSmall3, stdSnrSmall3, meanLwSmall3, stdLwSmall3
 
 def saveSpecs(ONfids_devN, ONfids_devFC, OFFfids_devN, OFFfids_devFC, Fnoise_dev, Pnoise_dev, snrTypes, waterTypes, termi):
     '''
@@ -423,18 +430,32 @@ def loadVivoData(offsetSize):
     PhaseL = np.load(f"{dataDir}InVivo/Corrupt/PnoiseInVivo_{offsetSize}Offsets.npy")
     return ON, OFF, FreqL, PhaseL
 
-def normSpecs(ONSpecs, OFFSpecs):
+def normSpecs95(ONSpecs, OFFSpecs):
     '''
     Normalize specs using 90-95th percentile
 
     :param ONSpecs: [numSamples, specPoints]
            OFFSpecs: [numSamples, specPoints]
-    :return: ONSpecs: [numSamples, specPoints]  **normalized**
-             OFFSpecs: [numSamples, specPoints] **normalized**
+    :return: ONSpecs: [numSamples, specPoints]  **normalized by 95th percentile value per spectrum**
+             OFFSpecs: [numSamples, specPoints] **normalized by 95th percentile value per spectrum**
     '''
 
-    ONSpecs = ((ONSpecs) / ((np.percentile(np.abs(ONSpecs), 90, axis=1, keepdims=True))))
-    OFFSpecs = ((OFFSpecs) / ((np.percentile(np.abs(OFFSpecs), 90, axis=1, keepdims=True))))
+    ONSpecs = ((ONSpecs) / ((np.percentile(np.abs(ONSpecs), 95, axis=1, keepdims=True))))
+    OFFSpecs = ((OFFSpecs) / ((np.percentile(np.abs(OFFSpecs), 95, axis=1, keepdims=True))))
+    return ONSpecs, OFFSpecs
+
+def normSpecsMax(ONSpecs, OFFSpecs):
+    '''
+    Normalize specs using 90-95th percentile
+
+    :param ONSpecs: [numSamples, specPoints]
+           OFFSpecs: [numSamples, specPoints]
+    :return: ONSpecs: [numSamples, specPoints]  **normalized by maximum value per spectrum**
+             OFFSpecs: [numSamples, specPoints] **normalized by maximum value per spectrum**
+    '''
+
+    ONSpecs = ((ONSpecs) / ((np.percentile(np.abs(ONSpecs), 100, axis=1, keepdims=True))))
+    OFFSpecs = ((OFFSpecs) / ((np.percentile(np.abs(OFFSpecs), 100, axis=1, keepdims=True))))
     return ONSpecs, OFFSpecs
 
 def divideDev(ON, OFF, percent):
