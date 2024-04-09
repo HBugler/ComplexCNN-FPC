@@ -1,12 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
-import pandas as pd
-import scipy.stats as stats
-from sklearn.metrics import mean_absolute_error as mae
-import math
+from metric_calculator import calculate_snr, calculate_linewidth
 import random
-from FPC_Functions import getMetricsSignificance
 
 def previewData(vivoPPM, vivoSpecsONN, vivoSpecsOFFN, vivoSpecsONS, vivoSpecsOFFS,
                 vivoSpecsONM, vivoSpecsOFFM, vivoSpecsONL, vivoSpecsOFFL,
@@ -68,32 +64,39 @@ def previewData(vivoPPM, vivoSpecsONN, vivoSpecsOFFN, vivoSpecsONS, vivoSpecsOFF
         plt.show()
 
 
-# Figure 3A and 3B: Spectra Reconstruction
-def plotFig3A(ppm, smallOffsets_CV_CNN, mediumOffsets_CV_CNN, largeOffsets_CV_CNN): #requires corrected data
+def plotAllScans(ppm, noOffsets, smallOffsets, mediumOffsets, largeOffsets): #requires corrected data
 
     # Figure 3A: Reconstructions Separated by Offsets
-    fig1, (ax1, ax2, ax3) = plt.subplots(3)
-    fig1.suptitle("CR-CNN Frequency and Phase Corrected In Vivo Spectra")
+    fig1, (ax0, ax1, ax2, ax3) = plt.subplots(4)
+    fig1.suptitle("CC-CNN Frequency and Phase Corrected In Vivo Spectra")
+
+    ax0. set_title("No Additional Offsets")
+    for scanN in range(0, noOffsets.shape[0]):
+        ax0.plot(ppm, noOffsets[scanN, :].real, alpha=0.25, color='steelblue')
+    ax0.set_xlabel('ppm')
+    ax0.get_yaxis().set_visible(False)
+    ax0.set_xlim(1.5, 5)
+    ax0.invert_xaxis()
 
     ax1. set_title("Small Additional Offsets")
-    for scanS in range(0, smallOffsets_CV_CNN.shape[0]):
-        ax1.plot(ppm, smallOffsets_CV_CNN[scanS, :].real, alpha=0.25, color='cadetblue')
+    for scanS in range(0, smallOffsets.shape[0]):
+        ax1.plot(ppm, smallOffsets[scanS, :].real, alpha=0.25, color='cadetblue')
     ax1.set_xlabel('ppm')
     ax1.get_yaxis().set_visible(False)
     ax1.set_xlim(1.5, 5)
     ax1.invert_xaxis()
 
     ax2. set_title("Medium Additional Offsets")
-    for scanM in range(0, mediumOffsets_CV_CNN.shape[0]):
-        ax2.plot(ppm, mediumOffsets_CV_CNN[scanM, :].real, alpha=0.25, color='darkcyan')
+    for scanM in range(0, mediumOffsets.shape[0]):
+        ax2.plot(ppm, mediumOffsets[scanM, :].real, alpha=0.25, color='darkcyan')
     ax2.set_xlabel('ppm')
     ax2.get_yaxis().set_visible(False)
     ax2.set_xlim(1.5, 5)
     ax2.invert_xaxis()
 
     ax3. set_title("Large Additional Offsets")
-    for scanL in range(0, largeOffsets_CV_CNN.shape[0]):
-        ax3.plot(ppm, largeOffsets_CV_CNN[scanL, :].real, alpha=0.25, color='darkslategrey')
+    for scanL in range(0, largeOffsets.shape[0]):
+        ax3.plot(ppm, largeOffsets[scanL, :].real, alpha=0.25, color='darkslategrey')
     ax3.set_xlabel('ppm')
     ax3.get_yaxis().set_visible(False)
     ax3.set_xlim(1.5, 5)
@@ -102,25 +105,36 @@ def plotFig3A(ppm, smallOffsets_CV_CNN, mediumOffsets_CV_CNN, largeOffsets_CV_CN
     plt.show()
 
 
-def plotFig3B(setName, ppm, offsetsCompRealS, offsetsMaS, offsetsCompTapperS,
+def plotAllModels(setName, ppm, offsetsCompRealN, offsetsMaN, offsetsCompTapperN,
+              offsetsCompRealS, offsetsMaS, offsetsCompTapperS,
               offsetsCompRealM, offsetsMaM, offsetsCompTapperM,
               offsetsCompRealL, offsetsMaL, offsetsCompTapperL,
-              offsetsUncorrS, offsetsUncorrM, offsetsUncorrL):
+              offsetsUncorrN, offsetsUncorrS, offsetsUncorrM, offsetsUncorrL):
 
     randScan = random.randint(0, 29)
 
-    for i in range(0, 29):
+    for i in range(0, 1):
         randS, randM, randL = i, i, i
             # Figure 3B: Selected Reconstructions by Different Models
-        fig1, (ax1, ax2, ax3) = plt.subplots(3)
+        fig1, (ax0, ax1, ax2, ax3) = plt.subplots(4)
         fig1.suptitle("Sample In Vivo Scan Reconstruction after Frequency and Phase Correction")
+
+        ax0.set_title("In Vivo Data with No Artificial Offsets")
+        ax0.set_xlabel('ppm')
+        ax0.set_xlim(1.5, 5)
+        ax0.plot(ppm, offsetsUncorrN[randS, :].real-2000, 'black', alpha=0.75, label='Uncorr', linewidth=3)
+        ax0.plot(ppm, offsetsCompTapperN[randS, :].real+2000, 'green', alpha=0.75, label=setName[2], linewidth=3)
+        ax0.plot(ppm, offsetsMaN[randS, :].real+4000, 'blue', alpha=0.75, label=setName[1], linewidth=3)
+        ax0.plot(ppm, offsetsCompRealN[randS, :].real, 'orange', alpha=0.75, label=setName[0], linewidth=3)
+        ax0.get_yaxis().set_visible(False)
+        ax0.invert_xaxis()
 
         ax1.set_title("In Vivo Data with Small Artificial Offsets")
         ax1.set_xlabel('ppm')
         ax1.set_xlim(1.5, 5)
-        ax1.plot(ppm, offsetsUncorrS[randS, :].real-2000, 'black', alpha=0.75, label='Uncorr', linewidth=3)
-        ax1.plot(ppm, offsetsCompTapperS[randS, :].real+2000, 'green', alpha=0.75, label=setName[2], linewidth=3)
-        ax1.plot(ppm, offsetsMaS[randS, :].real+4000, 'blue', alpha=0.75, label=setName[1], linewidth=3)
+        ax1.plot(ppm, offsetsUncorrS[randS, :].real - 2000, 'black', alpha=0.75, label='Uncorr', linewidth=3)
+        ax1.plot(ppm, offsetsCompTapperS[randS, :].real + 2000, 'green', alpha=0.75, label=setName[2], linewidth=3)
+        ax1.plot(ppm, offsetsMaS[randS, :].real + 4000, 'blue', alpha=0.75, label=setName[1], linewidth=3)
         ax1.plot(ppm, offsetsCompRealS[randS, :].real, 'orange', alpha=0.75, label=setName[0], linewidth=3)
         ax1.get_yaxis().set_visible(False)
         ax1.invert_xaxis()
@@ -149,80 +163,80 @@ def plotFig3B(setName, ppm, offsetsCompRealS, offsetsMaS, offsetsCompTapperS,
         plt.show()
 
 
-def qMetricPlot(setName, ppm, smallOffsets_M1, mediumOffsets_M1, largeOffsets_M1,
-                smallOffsets_M2, mediumOffsets_M2, largeOffsets_M2,
-                smallOffsets_M3, mediumOffsets_M3, largeOffsets_M3):
+def plotQMetric(setName, ppm, noOffsets_M1, noOffsets_M2, noOffsets_M3,
+                smallOffsets_M1, smallOffsets_M2, smallOffsets_M3,
+                medOffsets_M1, medOffsets_M2, medOffsets_M3,
+                largeOffsets_M1, largeOffsets_M2, largeOffsets_M3):
 
     finish, start = np.where(ppm <= 3.15)[0][0], np.where(ppm >= 3.28)[0][-1]
 
-    smallOffsets_M1 = smallOffsets_M1[:, start:finish]
-    varSmall_M1 = np.var(smallOffsets_M1, axis=1)
+    noOffsets_M1, noOffsets_M2, noOffsets_M3 = noOffsets_M1[:, start:finish], noOffsets_M2[:, start:finish], noOffsets_M3[:, start:finish]
+    varNo_M1, varNo_M2, varNo_M3 = np.var(noOffsets_M1, axis=1), np.var(noOffsets_M2, axis=1), np.var(noOffsets_M3, axis=1)
 
-    mediumOffsets_M1 = mediumOffsets_M1[:, start:finish]
-    varMed_M1 = np.var(mediumOffsets_M1, axis=1)
+    smallOffsets_M1, smallOffsets_M2, smallOffsets_M3 = smallOffsets_M1[:, start:finish], smallOffsets_M2[:, start:finish], smallOffsets_M3[:, start:finish]
+    varSmall_M1, varSmall_M2, varSmall_M3 = np.var(smallOffsets_M1, axis=1), np.var(smallOffsets_M2, axis=1), np.var(smallOffsets_M3, axis=1)
 
-    largeOffsets_M1 = largeOffsets_M1[:, start:finish]
-    varLarge_M1 = np.var(largeOffsets_M1, axis=1)
+    medOffsets_M1, medOffsets_M2, medOffsets_M3 = medOffsets_M1[:, start:finish], medOffsets_M2[:, start:finish], medOffsets_M3[:, start:finish]
+    varMed_M1, varMed_M2, varMed_M3 = np.var(medOffsets_M1, axis=1), np.var(medOffsets_M2, axis=1), np.var(medOffsets_M3, axis=1)
 
-    smallOffsets_M2 = smallOffsets_M2[:, start:finish]
-    varSmall_M2 = np.var(smallOffsets_M2, axis=1)
+    largeOffsets_M1, largeOffsets_M2, largeOffsets_M3 = largeOffsets_M1[:, start:finish], largeOffsets_M2[:, start:finish], largeOffsets_M3[:, start:finish]
+    varLarge_M1, varLarge_M2, varLarge_M3 = np.var(largeOffsets_M1, axis=1), np.var(largeOffsets_M2, axis=1), np.var(largeOffsets_M3, axis=1)
 
-    mediumOffsets_M2 = mediumOffsets_M2[:, start:finish]
-    varMed_M2 = np.var(mediumOffsets_M2, axis=1)
+    qNo12, qNo13 = np.zeros(varSmall_M1.shape[0]), np.zeros(varSmall_M1.shape[0])
+    qSmall12, qSmall13 = np.zeros(varSmall_M1.shape[0]), np.zeros(varSmall_M1.shape[0])
+    qMed12, qMed13 = np.zeros(varSmall_M1.shape[0]), np.zeros(varSmall_M1.shape[0])
+    qLarge12, qLarge13 = np.zeros(varSmall_M1.shape[0]), np.zeros(varSmall_M1.shape[0])
 
-    largeOffsets_M2 = largeOffsets_M2[:, start:finish]
-    varLarge_M2 = np.var(largeOffsets_M2, axis=1)
-
-    smallOffsets_M3 = smallOffsets_M3[:, start:finish]
-    varSmall_M3 = np.var(smallOffsets_M3, axis=1)
-
-    mediumOffsets_M3 = mediumOffsets_M3[:, start:finish]
-    varMed_M3 = np.var(mediumOffsets_M3, axis=1)
-
-    largeOffsets_M3 = largeOffsets_M3[:, start:finish]
-    varLarge_M3 = np.var(largeOffsets_M3, axis=1)
-
-    qSmall12, qMed12, qLarge12 = np.zeros(varSmall_M1.shape[0]), np.zeros(varSmall_M1.shape[0]), np.zeros(varSmall_M1.shape[0])
-    qSmall13, qMed13, qLarge13 = np.zeros(varSmall_M1.shape[0]), np.zeros(varSmall_M1.shape[0]), np.zeros(varSmall_M1.shape[0])
-
-    fig3, axs = plt.subplots(2, 3)
+    fig3, axs = plt.subplots(2, 4)
     fig3.suptitle("In Vivo Choline Artifact CV-CNN vs. CNN")
 
-    axs[0,0].set_title("Small Additional Offsets")
+    axs[0,0].set_title("No Additional Offsets")
     axs[0,0].set_xlabel('Scan')
     axs[0,0].set_ylabel('Q Value')
     axs[0,0].plot([-1, 37], [0.5, 0.5], "k--")
     axs[0,0].set_xlim(-1, 37)
 
-    axs[0,1].set_title("Medium Additional Offsets")
+    axs[0,1].set_title("Small Additional Offsets")
     axs[0,1].set_xlabel('Scan')
     axs[0,1].set_ylabel('Q Value')
     axs[0,1].plot([-1, 37], [0.5, 0.5], "k--")
     axs[0,1].set_xlim(-1, 37)
 
-    axs[0,2].set_title("Large Additional Offsets")
+    axs[0,2].set_title("Medium Additional Offsets")
     axs[0,2].set_xlabel('Scan')
     axs[0,2].set_ylabel('Q Value')
     axs[0,2].plot([-1, 37], [0.5, 0.5], "k--")
     axs[0,2].set_xlim(-1, 37)
 
-    axs[1,0].set_title("Small Additional Offsets")
+    axs[0,3].set_title("Large Additional Offsets")
+    axs[0,3].set_xlabel('Scan')
+    axs[0,3].set_ylabel('Q Value')
+    axs[0,3].plot([-1, 37], [0.5, 0.5], "k--")
+    axs[0,3].set_xlim(-1, 37)
+
+    axs[1,0].set_title("No Additional Offsets")
     axs[1,0].set_xlabel('Scan')
     axs[1,0].set_ylabel('Q Value')
     axs[1,0].plot([-1, 37], [0.5, 0.5], "k--")
     axs[1,0].set_xlim(-1, 37)
 
-    axs[1,1].set_title("Medium Additional Offsets")
+    axs[1,1].set_title("Small Additional Offsets")
     axs[1,1].set_xlabel('Scan')
     axs[1,1].set_ylabel('Q Value')
     axs[1,1].plot([-1, 37], [0.5, 0.5], "k--")
     axs[1,1].set_xlim(-1, 37)
 
-    axs[1,2].set_title("Large Additional Offsets")
+    axs[1,2].set_title("Medium Additional Offsets")
     axs[1,2].set_xlabel('Scan')
     axs[1,2].set_ylabel('Q Value')
     axs[1,2].plot([-1, 37], [0.5, 0.5], "k--")
     axs[1,2].set_xlim(-1, 37)
+
+    axs[1,3].set_title("Large Additional Offsets")
+    axs[1,3].set_xlabel('Scan')
+    axs[1,3].set_ylabel('Q Value')
+    axs[1,3].plot([-1, 37], [0.5, 0.5], "k--")
+    axs[1,3].set_xlim(-1, 37)
 
     legend_elements12 = [Line2D([0], [0], marker='o', color='w', label=f'{setName[0]} > {setName[1]}',
                               markerfacecolor='blue', markersize=15),
@@ -235,88 +249,120 @@ def qMetricPlot(setName, ppm, smallOffsets_M1, mediumOffsets_M1, largeOffsets_M1
     axs[0,0].legend(handles=legend_elements12, loc='upper left')
     axs[0,1].legend(handles=legend_elements12, loc='upper left')
     axs[0,2].legend(handles=legend_elements12, loc='upper left')
+    axs[0,3].legend(handles=legend_elements12, loc='upper left')
     axs[1,0].legend(handles=legend_elements13, loc='upper left')
     axs[1,1].legend(handles=legend_elements13, loc='upper left')
     axs[1,2].legend(handles=legend_elements13, loc='upper left')
-    
+    axs[1,3].legend(handles=legend_elements13, loc='upper left')
+
     for i in range(0, varSmall_M1.shape[0]):
         # shouldn't have to use abs()
+        qNo12[i] = np.abs((1 - varNo_M1[i]) / (varNo_M1[i] + varNo_M2[i]))
         qSmall12[i] = np.abs((1 - varSmall_M1[i]) / (varSmall_M1[i] + varSmall_M2[i]))
         qMed12[i] = np.abs((1 - varMed_M1[i]) / (varMed_M1[i] + varMed_M2[i]))
         qLarge12[i] = np.abs((1 - varLarge_M1[i]) / (varLarge_M1[i] + varLarge_M2[i]))
 
+        qNo13[i] = np.abs((1 - varNo_M1[i]) / (varNo_M1[i] + varNo_M3[i]))
         qSmall13[i] = np.abs((1 - varSmall_M1[i]) / (varSmall_M1[i] + varSmall_M3[i]))
         qMed13[i] = np.abs((1 - varMed_M1[i]) / (varMed_M1[i] + varMed_M3[i]))
         qLarge13[i] = np.abs((1 - varLarge_M1[i]) / (varLarge_M1[i] + varLarge_M3[i]))
 
-        if (qSmall12[i] >= 0.5):
-            axs[0,0].plot(i, qSmall12[i], marker="o", markersize=5, markeredgecolor="blue", markerfacecolor="blue", label='CR-CNN > CNN')
+
+        if (qNo12[i] >= 0.5):
+            axs[0, 0].plot(i, qNo12[i], marker="o", markersize=5, markeredgecolor="blue", markerfacecolor="blue",
+                           label='CR-CNN > CNN')
         else:
-            axs[0,0].plot(i, qSmall12[i], marker="o", markersize=5, markeredgecolor="red", markerfacecolor="red", label='CR-CNN < CNN')
+            axs[0, 0].plot(i, qNo12[i], marker="o", markersize=5, markeredgecolor="red", markerfacecolor="red",
+                           label='CR-CNN < CNN')
+        if (qSmall12[i] >= 0.5):
+            axs[0,1].plot(i, qSmall12[i], marker="o", markersize=5, markeredgecolor="blue", markerfacecolor="blue", label='CR-CNN > CNN')
+        else:
+            axs[0,1].plot(i, qSmall12[i], marker="o", markersize=5, markeredgecolor="red", markerfacecolor="red", label='CR-CNN < CNN')
 
         if (qMed12[i] >= 0.5):
-            axs[0,1].plot(i, qMed12[i], marker="o", markersize=5, markeredgecolor="blue", markerfacecolor="blue", label='CR-CNN > CNN')
+            axs[0,2].plot(i, qMed12[i], marker="o", markersize=5, markeredgecolor="blue", markerfacecolor="blue", label='CR-CNN > CNN')
         else:
-            axs[0,1].plot(i, qMed12[i], marker="o", markersize=5, markeredgecolor="red", markerfacecolor="red", label='CR-CNN < CNN')
+            axs[0,2].plot(i, qMed12[i], marker="o", markersize=5, markeredgecolor="red", markerfacecolor="red", label='CR-CNN < CNN')
 
         if (qLarge12[i] >= 0.5):
-            axs[0,2].plot(i, qLarge12[i], marker="o", markersize=5, markeredgecolor="blue", markerfacecolor="blue", label='CR-CNN > CNN')
+            axs[0,3].plot(i, qLarge12[i], marker="o", markersize=5, markeredgecolor="blue", markerfacecolor="blue", label='CR-CNN > CNN')
         else:
-            axs[0,2].plot(i, qLarge12[i], marker="o", markersize=5, markeredgecolor="red", markerfacecolor="red", label='CR-CNN < CNN')
+            axs[0,3].plot(i, qLarge12[i], marker="o", markersize=5, markeredgecolor="red", markerfacecolor="red", label='CR-CNN < CNN')
 
-        if (qSmall13[i] >= 0.5):
-            axs[1,0].plot(i, qSmall13[i], marker="o", markersize=5, markeredgecolor="blue", markerfacecolor="blue", label='CR-CNN > MLP')
+        if (qNo13[i] >= 0.5):
+            axs[1, 0].plot(i, qNo13[i], marker="o", markersize=5, markeredgecolor="blue", markerfacecolor="blue",
+                           label='CR-CNN > CNN')
         else:
-            axs[1,0].plot(i, qSmall13[i], marker="o", markersize=5, markeredgecolor="red", markerfacecolor="red", label='CR-CNN < MLP')
+            axs[1, 0].plot(i, qNo13[i], marker="o", markersize=5, markeredgecolor="red", markerfacecolor="red",
+                           label='CR-CNN < CNN')
+        if (qSmall13[i] >= 0.5):
+            axs[1,1].plot(i, qSmall13[i], marker="o", markersize=5, markeredgecolor="blue", markerfacecolor="blue", label='CR-CNN > MLP')
+        else:
+            axs[1,1].plot(i, qSmall13[i], marker="o", markersize=5, markeredgecolor="red", markerfacecolor="red", label='CR-CNN < MLP')
 
         if (qMed13[i] >= 0.5):
-            axs[1,1].plot(i, qMed13[i], marker="o", markersize=5, markeredgecolor="blue", markerfacecolor="blue", label='CR-CNN > MLP')
+            axs[1,2].plot(i, qMed13[i], marker="o", markersize=5, markeredgecolor="blue", markerfacecolor="blue", label='CR-CNN > MLP')
         else:
-            axs[1,1].plot(i, qMed13[i], marker="o", markersize=5, markeredgecolor="red", markerfacecolor="red", label='CR-CNN < MLP')
+            axs[1,2].plot(i, qMed13[i], marker="o", markersize=5, markeredgecolor="red", markerfacecolor="red", label='CR-CNN < MLP')
 
         if (qLarge13[i] >= 0.5):
-            axs[1,2].plot(i, qLarge13[i], marker="o", markersize=5, markeredgecolor="blue", markerfacecolor="blue", label='CR-CNN > MLP')
+            axs[1,3].plot(i, qLarge13[i], marker="o", markersize=5, markeredgecolor="blue", markerfacecolor="blue", label='CR-CNN > MLP')
         else:
-            axs[1,2].plot(i, qLarge13[i], marker="o", markersize=5, markeredgecolor="red", markerfacecolor="red", label='CR-CNN < MLP')
+            axs[1,3].plot(i, qLarge13[i], marker="o", markersize=5, markeredgecolor="red", markerfacecolor="red", label='CR-CNN < MLP')
 
+    avQN12, stdQN12 = np.mean(qNo12), np.std(qNo12)
     avQS12, stdQS12 = np.mean(qSmall12), np.std(qSmall12)
     avQM12, stdQM12 = np.mean(qMed12), np.std(qMed12)
     avQL12, stdQL12 = np.mean(qLarge12), np.std(qLarge12)
-    axs[0,0].text(10, np.min(qSmall12), f"E[Q] = {round(avQS12, 2)} +/- {round(stdQS12, 2)}")
-    axs[0,1].text(10, np.min(qMed12), f"E[Q] = {round(avQM12, 2)} +/- {round(stdQM12, 2)}")
-    axs[0,2].text(10, np.min(qLarge12), f"E[Q] = {round(avQL12, 2)} +/- {round(stdQL12, 2)}")
+    axs[0,0].text(10, np.min(qNo12), f"E[Q] = {round(avQN12, 2)} +/- {round(stdQN12, 2)}")
+    axs[0,1].text(10, np.min(qSmall12), f"E[Q] = {round(avQS12, 2)} +/- {round(stdQS12, 2)}")
+    axs[0,2].text(10, np.min(qMed12), f"E[Q] = {round(avQM12, 2)} +/- {round(stdQM12, 2)}")
+    axs[0,3].text(10, np.min(qLarge12), f"E[Q] = {round(avQL12, 2)} +/- {round(stdQL12, 2)}")
 
+    avQN13, stdQN13 = np.mean(qNo13), np.std(qNo13)
     avQS13, stdQS13 = np.mean(qSmall13), np.std(qSmall13)
     avQM13, stdQM13 = np.mean(qMed13), np.std(qMed13)
     avQL13, stdQL13 = np.mean(qLarge13), np.std(qLarge13)
-    axs[1,0].text(10, np.min(qSmall13), f"E[Q] = {round(avQS13, 2)} +/- {round(stdQS13, 2)}")
-    axs[1,1].text(10, np.min(qMed13), f"E[Q] = {round(avQM13, 2)} +/- {round(stdQM13, 2)}")
-    axs[1,2].text(10, np.min(qLarge13), f"E[Q] = {round(avQL13, 2)} +/- {round(stdQL13, 2)}")
+    axs[1,0].text(10, np.min(qNo13), f"E[Q] = {round(avQN13, 2)} +/- {round(stdQN13, 2)}")
+    axs[1,1].text(10, np.min(qSmall13), f"E[Q] = {round(avQS13, 2)} +/- {round(stdQS13, 2)}")
+    axs[1,2].text(10, np.min(qMed13), f"E[Q] = {round(avQM13, 2)} +/- {round(stdQM13, 2)}")
+    axs[1,3].text(10, np.min(qLarge13), f"E[Q] = {round(avQL13, 2)} +/- {round(stdQL13, 2)}")
 
     plt.show()
 
 
-def plotFig4(setName, vivoPPM,
-             CRspecsNone_Mscans, MaspecsNone_Mscans, TpspecsNonel_Mscans,
-             CRspecsSmall_Mscans, MaspecsSmall_Mscans, TpspecsSmall_Mscans,
-             CRspecsMed_Mscans, MaspecsMed_Mscans, TpspecsMed_Mscans,
-             CRspecsLarge_Mscans, MaspecsLarge_Mscans, TpspecsLarge_Mscans):
+def plotQualityMetrics(setName, vivoPPM,
+             m1SpecsNone_Mscans, m2SspecsNone_Mscans, m3SpecsNonel_Mscans,
+             m1SpecsSmall_Mscans, m2SpecsSmall_Mscans, m3SpecsSmall_Mscans,
+             m1SpecsMed_Mscans, m2SpecsMed_Mscans, m3SpecsMed_Mscans,
+             m1SpecsLarge_Mscans, m2SpecsLarge_Mscans, m3SpecsLarge_Mscans):
 
-    meanSnrN1, stdSnrN1, meanLwN1, stdLwN1, \
-    meanSnrN2, stdSnrN2, meanLwN2, stdLwN2, \
-    meanSnrN3, stdSnrN3, meanLwN3, stdLwN3 = getMetricsSignificance(CRspecsNone_Mscans.real, MaspecsNone_Mscans.real, TpspecsNonel_Mscans.real, vivoPPM, setName, sizeName="None")
+    meanSnrN1, stdSnrN1 = calculate_snr(m1SpecsNone_Mscans, vivoPPM)[1:3]
+    meanSnrS1, stdSnrS1 = calculate_snr(m1SpecsSmall_Mscans, vivoPPM)[1:3]
+    meanSnrM1, stdSnrM1 = calculate_snr(m1SpecsMed_Mscans, vivoPPM)[1:3]
+    meanSnrL1, stdSnrL1 = calculate_snr(m1SpecsLarge_Mscans, vivoPPM)[1:3]
+    meanLwN1, stdLwN1 = calculate_linewidth(m1SpecsNone_Mscans, vivoPPM)[1:3]
+    meanLwS1, stdLwS1 = calculate_linewidth(m1SpecsSmall_Mscans, vivoPPM)[1:3]
+    meanLwM1, stdLwM1 = calculate_linewidth(m1SpecsMed_Mscans, vivoPPM)[1:3]
+    meanLwL1, stdLwL1 = calculate_linewidth(m1SpecsLarge_Mscans, vivoPPM)[1:3]
 
-    meanSnrS1, stdSnrS1, meanLwS1, stdLwS1, \
-    meanSnrS2, stdSnrS2, meanLwS2, stdLwS2, \
-    meanSnrS3, stdSnrS3, meanLwS3, stdLwS3  = getMetricsSignificance(CRspecsSmall_Mscans.real, MaspecsSmall_Mscans.real, TpspecsSmall_Mscans.real, vivoPPM, setName, sizeName="Small")
+    meanSnrN2, stdSnrN2 = calculate_snr(m2SspecsNone_Mscans, vivoPPM)[1:3]
+    meanSnrS2, stdSnrS2 = calculate_snr(m2SpecsSmall_Mscans, vivoPPM)[1:3]
+    meanSnrM2, stdSnrM2 = calculate_snr(m2SpecsMed_Mscans, vivoPPM)[1:3]
+    meanSnrL2, stdSnrL2 = calculate_snr(m2SpecsLarge_Mscans, vivoPPM)[1:3]
+    meanLwN2, stdLwN2 = calculate_linewidth(m2SspecsNone_Mscans, vivoPPM)[1:3]
+    meanLwS2, stdLwS2 = calculate_linewidth(m2SpecsSmall_Mscans, vivoPPM)[1:3]
+    meanLwM2, stdLwM2 = calculate_linewidth(m2SpecsMed_Mscans, vivoPPM)[1:3]
+    meanLwL2, stdLwL2 = calculate_linewidth(m2SpecsLarge_Mscans, vivoPPM)[1:3]
 
-    meanSnrM1, stdSnrM1, meanLwM1, stdLwM1, \
-    meanSnrM2, stdSnrM2, meanLwM2, stdLwM2, \
-    meanSnrM3, stdSnrM3, meanLwM3, stdLwM3  = getMetricsSignificance(CRspecsMed_Mscans.real, MaspecsMed_Mscans.real, TpspecsMed_Mscans.real, vivoPPM, setName, sizeName="Medium")
-
-    meanSnrL1, stdSnrL1, meanLwL1, stdLwL1, \
-    meanSnrL2, stdSnrL2, meanLwL2, stdLwL2, \
-    meanSnrL3, stdSnrL3, meanLwL3, stdLwL3 = getMetricsSignificance(CRspecsLarge_Mscans.real, MaspecsLarge_Mscans.real, TpspecsLarge_Mscans.real, vivoPPM, setName, sizeName="Large")
+    meanSnrN3, stdSnrN3 = calculate_snr(m3SpecsNonel_Mscans, vivoPPM)[1:3]
+    meanSnrS3, stdSnrS3 = calculate_snr(m3SpecsSmall_Mscans, vivoPPM)[1:3]
+    meanSnrM3, stdSnrM3 = calculate_snr(m3SpecsMed_Mscans, vivoPPM)[1:3]
+    meanSnrL3, stdSnrL3 = calculate_snr(m3SpecsLarge_Mscans, vivoPPM)[1:3]
+    meanLwN3, stdLwN3 = calculate_linewidth(m3SpecsNonel_Mscans, vivoPPM)[1:3]
+    meanLwS3, stdLwS3 = calculate_linewidth(m3SpecsSmall_Mscans, vivoPPM)[1:3]
+    meanLwM3, stdLwM3 = calculate_linewidth(m3SpecsMed_Mscans, vivoPPM)[1:3]
+    meanLwL3, stdLwL3 = calculate_linewidth(m3SpecsLarge_Mscans, vivoPPM)[1:3]
 
     fig1, axs = plt.subplots(2, 4)
     fig1.suptitle("In Vivo Quality Metrics Analysis")
