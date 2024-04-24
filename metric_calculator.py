@@ -69,8 +69,11 @@ def calculate_snr(x,ppm):
     for i in range(x.shape[0]):
         # selecting indexes of regions of interest
         i_ppm = np.ndarray.round(ppm, 2)
-        gaba_max_ind, gaba_min_ind = np.amax(np.where(i_ppm >= 2.8)), np.amin(np.where(i_ppm <= 3.2))
-        dt_max_ind, dt_min_ind = np.amax(np.where(i_ppm >= 9.8)), np.amin(np.where(i_ppm <= 10.8))
+        # gaba_max_ind, gaba_min_ind = np.amax(np.where(i_ppm >= 2.8)), np.amin(np.where(i_ppm <= 3.2)) # + to - ppm
+        # dt_max_ind, dt_min_ind = np.amax(np.where(i_ppm >= 9.8)), np.amin(np.where(i_ppm <= 10.8))    # + to - ppm
+
+        gaba_min_ind, gaba_max_ind = np.where(ppm <= 2.8)[0][-1], np.where(ppm >= 3.2)[0][0]            # - to + ppm
+        dt_min_ind, dt_max_ind = np.where(ppm <= 9.8)[0][-1], np.where(ppm >= 10.8)[0][0]               # - to + ppm
 
         # selecting scan and extracting region peak
         spec = x[i]
@@ -101,7 +104,8 @@ def calculate_linewidth(x,ppm):
 
     for i in range(x.shape[0]):
         i_ppm = np.ndarray.round(ppm, 2)
-        gaba_max_ind, gaba_min_ind = np.amax(np.where(i_ppm >= 2.8)), np.amin(np.where(i_ppm <= 3.2))
+        # gaba_max_ind, gaba_min_ind = np.amax(np.where(i_ppm >= 2.8)), np.amin(np.where(i_ppm <= 3.2)) # + to - ppm
+        gaba_min_ind, gaba_max_ind = np.where(ppm <= 2.8)[0][-1], np.where(ppm >= 3.2)[0][0]            # - to + ppm
 
         spec = x[i, gaba_min_ind:gaba_max_ind]
         # print(spec.shape)
@@ -119,7 +123,8 @@ def calculate_linewidth(x,ppm):
         left_ppm = i_ppm[left_ind]
         right_ppm = i_ppm[right_ind]
 
-        linewidths.append(left_ppm - right_ppm)
+        # linewidths.append(left_ppm - right_ppm)   # + to - ppm
+        linewidths.append(right_ppm - left_ppm)     # - to + ppm
     stds = np.std(linewidths)
 
     return linewidths, sum(linewidths) / len(linewidths), stds

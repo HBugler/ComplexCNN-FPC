@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import wilcoxon as wlcx
 from sklearn.metrics import mean_absolute_error as MAE
@@ -23,9 +24,9 @@ for water in waterTypes:
         indS = snrTypes.index(snr)
 
         # import true frequency and phase shifts for current dataset
-        TrueLbsPhase = np.load(f"{simDir}Corrupt/TruePhaseLabels_Sim{snrTypes[indS]}_{waterTypes[indW]}_Test.npy")
+        TrueLbsPhase = np.load(f"{simDir}Corrupt/simPNoise{waterTypes[indW]}{snrTypes[indS]}Test.npy")
         TruePhase = np.concatenate((TrueLbsPhase[1, :], TrueLbsPhase[0, :]))
-        trueLbsFreq = np.load(f"{simDir}Corrupt/TrueFreqLabels_Sim{snrTypes[indS]}_{waterTypes[indW]}_Test.npy")
+        trueLbsFreq = np.load(f"{simDir}Corrupt/simFNoise{waterTypes[indW]}{snrTypes[indS]}Test.npy")
         TrueFreq = np.concatenate((trueLbsFreq[1, :], trueLbsFreq[0, :]))
 
         # import predicted frequency and phase shifts for all models
@@ -69,7 +70,7 @@ for water in waterTypes:
 # In Vivo Data
 ########################################################################################################################
 vivoModels = ["compComp", "Ma_4Convs", "Tapper"]
-size=["Small", "Medium", "Large"]
+size=["Small", "Med", "Large", "None"]
 vivoDir = "C:/Users/Hanna B/Desktop/FPCFinal2024/Data/InVivo/"
 
 # import time and ppm
@@ -79,71 +80,67 @@ timeV = np.load(f"{vivoDir}GTs/time_InVivo.npy")
 # load specs, ground truth labels, and prediction labels
 print('Loading Data...')
 
-vivoSpecsONN = np.load(f"{vivoDir}GTs/allSpecsInVivoON_NoOffsets.npy")
-vivoSpecsOFFN = np.load(f"{vivoDir}GTs/allSpecsInVivoOFF_NoOffsets.npy")
-vivoSpecsONS = np.load(f"{vivoDir}Corrupt/allSpecsInVivoON_{size[0]}Offsets.npy")
-vivoSpecsOFFS = np.load(f"{vivoDir}Corrupt/allSpecsInVivoOFF_{size[0]}Offsets.npy")
-vivoSpecsONM = np.load(f"{vivoDir}Corrupt/allSpecsInVivoON_{size[1]}Offsets.npy")
-vivoSpecsOFFM = np.load(f"{vivoDir}Corrupt/allSpecsInVivoOFF_{size[1]}Offsets.npy")
-vivoSpecsONL = np.load(f"{vivoDir}Corrupt/allSpecsInVivoON_{size[2]}Offsets.npy")
-vivoSpecsOFFL = np.load(f"{vivoDir}Corrupt/allSpecsInVivoOFF_{size[2]}Offsets.npy")
+vivoFidsONN = np.load(f"{vivoDir}GTs/allFidsInVivoON_NoOffsets.npy")
+vivoFidsOFFN = np.load(f"{vivoDir}GTs/allFidsInVivoOFF_NoOffsets.npy")
+vivoFidsONS = np.load(f"{vivoDir}Corrupt/vivoFidsOn{size[0]}Offsets.npy")
+vivoFidsOFFS = np.load(f"{vivoDir}Corrupt/vivoFidsOff{size[0]}Offsets.npy")
+vivoFidsONM = np.load(f"{vivoDir}Corrupt/vivoFidsOn{size[1]}Offsets.npy")
+vivoFidsOFFM = np.load(f"{vivoDir}Corrupt/vivoFidsOff{size[1]}Offsets.npy")
+vivoFidsONL = np.load(f"{vivoDir}Corrupt/vivoFidsOn{size[2]}Offsets.npy")
+vivoFidsOFFL = np.load(f"{vivoDir}Corrupt/vivoFidsOff{size[2]}Offsets.npy")
 
-m1FreqLbsN = np.load(f"{vivoDir}Predictions/PredLabels_None_freq_InVivo_{vivoModels[0]}_None.npy")
-m1PhaseLbsN = np.load(f"{vivoDir}Predictions/PredLabels_None_phase_InVivo_{vivoModels[0]}_None.npy")
-m1FreqLbsS = np.load(f"{vivoDir}Predictions/PredLabels_Small_freq_InVivo_{vivoModels[0]}_{size[0]}.npy")
-m1PhaseLbsS = np.load(f"{vivoDir}Predictions/PredLabels_Small_phase_InVivo_{vivoModels[0]}_{size[0]}.npy")
-m1FreqLbsM = np.load(f"{vivoDir}Predictions/PredLabels_Medium_freq_InVivo_{vivoModels[0]}_{size[1]}.npy")
-m1PhaseLbsM = np.load(f"{vivoDir}Predictions/PredLabels_Medium_phase_InVivo_{vivoModels[0]}_{size[1]}.npy")
-m1FreqLbsL = np.load(f"{vivoDir}Predictions/PredLabels_Large_freq_InVivo_{vivoModels[0]}_{size[2]}.npy")
-m1PhaseLbsL = np.load(f"{vivoDir}Predictions/PredLabels_Large_phase_InVivo_{vivoModels[0]}_{size[2]}.npy")
+m1FreqLbsN = np.load(f"{vivoDir}Predictions/PredLabels_{size[3]}_freq_InVivo_{vivoModels[0]}_{size[3]}.npy")
+m1PhaseLbsN = np.load(f"{vivoDir}Predictions/PredLabels_{size[3]}_phase_InVivo_{vivoModels[0]}_{size[3]}.npy")
+m1FreqLbsS = np.load(f"{vivoDir}Predictions/PredLabels_{size[0]}_freq_InVivo_{vivoModels[0]}_{size[0]}.npy")
+m1PhaseLbsS = np.load(f"{vivoDir}Predictions/PredLabels_{size[0]}_phase_InVivo_{vivoModels[0]}_{size[0]}.npy")
+m1FreqLbsM = np.load(f"{vivoDir}Predictions/PredLabels_{size[1]}_freq_InVivo_{vivoModels[0]}_{size[1]}.npy")
+m1PhaseLbsM = np.load(f"{vivoDir}Predictions/PredLabels_{size[1]}_phase_InVivo_{vivoModels[0]}_{size[1]}.npy")
+m1FreqLbsL = np.load(f"{vivoDir}Predictions/PredLabels_{size[2]}_freq_InVivo_{vivoModels[0]}_{size[2]}.npy")
+m1PhaseLbsL = np.load(f"{vivoDir}Predictions/PredLabels_{size[2]}_phase_InVivo_{vivoModels[0]}_{size[2]}.npy")
 
-m2FreqLbsN = np.load(f"{vivoDir}Predictions/PredLabels_None_freq_InVivo_{vivoModels[1]}_None.npy")
-m2PhaseLbsN = np.load(f"{vivoDir}Predictions/PredLabels_None_phase_InVivo_{vivoModels[1]}_None.npy")
-m2FreqLbsS = np.load(f"{vivoDir}Predictions/PredLabels_Small_freq_InVivo_{vivoModels[1]}_{size[0]}.npy")
-m2PhaseLbsS = np.load(f"{vivoDir}Predictions/PredLabels_Small_phase_InVivo_{vivoModels[1]}_{size[0]}.npy")
-m2FreqLbsM = np.load(f"{vivoDir}Predictions/PredLabels_Medium_freq_InVivo_{vivoModels[1]}_{size[1]}.npy")
-m2PhaseLbsM = np.load(f"{vivoDir}Predictions/PredLabels_Medium_phase_InVivo_{vivoModels[1]}_{size[1]}.npy")
-m2FreqLbsL = np.load(f"{vivoDir}Predictions/PredLabels_Large_freq_InVivo_{vivoModels[1]}_{size[2]}.npy")
-m2PhaseLbsL = np.load(f"{vivoDir}Predictions/PredLabels_Large_phase_InVivo_{vivoModels[1]}_{size[2]}.npy")
+m2FreqLbsN = np.load(f"{vivoDir}Predictions/PredLabels_{size[3]}_freq_InVivo_{vivoModels[1]}_{size[3]}.npy")
+m2PhaseLbsN = np.load(f"{vivoDir}Predictions/PredLabels_{size[3]}_phase_InVivo_{vivoModels[1]}_{size[3]}.npy")
+m2FreqLbsS = np.load(f"{vivoDir}Predictions/PredLabels_{size[0]}_freq_InVivo_{vivoModels[1]}_{size[0]}.npy")
+m2PhaseLbsS = np.load(f"{vivoDir}Predictions/PredLabels_{size[0]}_phase_InVivo_{vivoModels[1]}_{size[0]}.npy")
+m2FreqLbsM = np.load(f"{vivoDir}Predictions/PredLabels_{size[1]}_freq_InVivo_{vivoModels[1]}_{size[1]}.npy")
+m2PhaseLbsM = np.load(f"{vivoDir}Predictions/PredLabels_{size[1]}_phase_InVivo_{vivoModels[1]}_{size[1]}.npy")
+m2FreqLbsL = np.load(f"{vivoDir}Predictions/PredLabels_{size[2]}_freq_InVivo_{vivoModels[1]}_{size[2]}.npy")
+m2PhaseLbsL = np.load(f"{vivoDir}Predictions/PredLabels_{size[2]}_phase_InVivo_{vivoModels[1]}_{size[2]}.npy")
 
-m3FreqLbsN = np.load(f"{vivoDir}Predictions/PredLabels_None_freq_InVivo_{vivoModels[2]}_None.npy")
-m3PhaseLbsN = np.load(f"{vivoDir}Predictions/PredLabels_None_phase_InVivo_{vivoModels[2]}_None.npy")
-m3FreqLbsS = np.load(f"{vivoDir}Predictions/PredLabels_Small_freq_InVivo_{vivoModels[2]}_{size[0]}.npy")
-m3PhaseLbsS = np.load(f"{vivoDir}Predictions/PredLabels_Small_phase_InVivo_{vivoModels[2]}_{size[0]}.npy")
-m3FreqLbsM = np.load(f"{vivoDir}Predictions/PredLabels_Medium_freq_InVivo_{vivoModels[2]}_{size[1]}.npy")
-m3PhaseLbsM = np.load(f"{vivoDir}Predictions/PredLabels_Medium_phase_InVivo_{vivoModels[2]}_{size[1]}.npy")
-m3FreqLbsL = np.load(f"{vivoDir}Predictions/PredLabels_Large_freq_InVivo_{vivoModels[2]}_{size[2]}.npy")
-m3PhaseLbsL = np.load(f"{vivoDir}Predictions/PredLabels_Large_phase_InVivo_{vivoModels[2]}_{size[2]}.npy")
+m3FreqLbsN = np.load(f"{vivoDir}Predictions/PredLabels_{size[3]}_freq_InVivo_{vivoModels[2]}_{size[3]}.npy")
+m3PhaseLbsN = np.load(f"{vivoDir}Predictions/PredLabels_{size[3]}_phase_InVivo_{vivoModels[2]}_{size[3]}.npy")
+m3FreqLbsS = np.load(f"{vivoDir}Predictions/PredLabels_{size[0]}_freq_InVivo_{vivoModels[2]}_{size[0]}.npy")
+m3PhaseLbsS = np.load(f"{vivoDir}Predictions/PredLabels_{size[0]}_phase_InVivo_{vivoModels[2]}_{size[0]}.npy")
+m3FreqLbsM = np.load(f"{vivoDir}Predictions/PredLabels_{size[1]}_freq_InVivo_{vivoModels[2]}_{size[1]}.npy")
+m3PhaseLbsM = np.load(f"{vivoDir}Predictions/PredLabels_{size[1]}_phase_InVivo_{vivoModels[2]}_{size[1]}.npy")
+m3FreqLbsL = np.load(f"{vivoDir}Predictions/PredLabels_{size[2]}_freq_InVivo_{vivoModels[2]}_{size[2]}.npy")
+m3PhaseLbsL = np.load(f"{vivoDir}Predictions/PredLabels_{size[2]}_phase_InVivo_{vivoModels[2]}_{size[2]}.npy")
 
 ###################################################################################################################
 # Apply Corrections to Data
 ###################################################################################################################
 print('Applying Corrections...')
 # assign in vivo data to models
-SpecsN = np.concatenate((np.copy(vivoSpecsONN), np.copy(vivoSpecsOFFN)), axis=0)
-SpecsS = np.concatenate((np.copy(vivoSpecsONS), np.copy(vivoSpecsOFFS)), axis=0)
-SpecsM = np.concatenate((np.copy(vivoSpecsONM), np.copy(vivoSpecsOFFM)), axis=0)
-SpecsL = np.concatenate((np.copy(vivoSpecsONL), np.copy(vivoSpecsOFFL)), axis=0)
+FidsN = np.concatenate((np.copy(vivoFidsONN), np.copy(vivoFidsOFFN)), axis=0)
+FidsS = np.concatenate((np.copy(vivoFidsONS), np.copy(vivoFidsOFFS)), axis=0)
+FidsM = np.concatenate((np.copy(vivoFidsONM), np.copy(vivoFidsOFFM)), axis=0)
+FidsL = np.concatenate((np.copy(vivoFidsONL), np.copy(vivoFidsOFFL)), axis=0)
+SpecsN, SpecsS, SpecsM, SpecsL = toSpecs(FidsN), toSpecs(FidsS), toSpecs(FidsM), toSpecs(FidsL)
 
-m1SpecsN = np.concatenate((np.copy(vivoSpecsONN), np.copy(vivoSpecsOFFN)), axis=0)
-m1SpecsS = np.concatenate((np.copy(vivoSpecsONS), np.copy(vivoSpecsOFFS)), axis=0)
-m1SpecsM = np.concatenate((np.copy(vivoSpecsONM), np.copy(vivoSpecsOFFM)), axis=0)
-m1SpecsL = np.concatenate((np.copy(vivoSpecsONL), np.copy(vivoSpecsOFFL)), axis=0)
+m1FidsN = np.concatenate((np.copy(vivoFidsONN), np.copy(vivoFidsOFFN)), axis=0)
+m1FidsS = np.concatenate((np.copy(vivoFidsONS), np.copy(vivoFidsOFFS)), axis=0)
+m1FidsM = np.concatenate((np.copy(vivoFidsONM), np.copy(vivoFidsOFFM)), axis=0)
+m1FidsL = np.concatenate((np.copy(vivoFidsONL), np.copy(vivoFidsOFFL)), axis=0)
 
-m2SpecsN = np.concatenate((np.copy(vivoSpecsONN), np.copy(vivoSpecsOFFN)), axis=0)
-m2SpecsS = np.concatenate((np.copy(vivoSpecsONS), np.copy(vivoSpecsOFFS)), axis=0)
-m2SpecsM = np.concatenate((np.copy(vivoSpecsONM), np.copy(vivoSpecsOFFM)), axis=0)
-m2SpecsL = np.concatenate((np.copy(vivoSpecsONL), np.copy(vivoSpecsOFFL)), axis=0)
+m2FidsN = np.concatenate((np.copy(vivoFidsONN), np.copy(vivoFidsOFFN)), axis=0)
+m2FidsS = np.concatenate((np.copy(vivoFidsONS), np.copy(vivoFidsOFFS)), axis=0)
+m2FidsM = np.concatenate((np.copy(vivoFidsONM), np.copy(vivoFidsOFFM)), axis=0)
+m2FidsL = np.concatenate((np.copy(vivoFidsONL), np.copy(vivoFidsOFFL)), axis=0)
 
-m3SpecsN = np.concatenate((np.copy(vivoSpecsONN), np.copy(vivoSpecsOFFN)), axis=0)
-m3SpecsS = np.concatenate((np.copy(vivoSpecsONS), np.copy(vivoSpecsOFFS)), axis=0)
-m3SpecsM = np.concatenate((np.copy(vivoSpecsONM), np.copy(vivoSpecsOFFM)), axis=0)
-m3SpecsL = np.concatenate((np.copy(vivoSpecsONL), np.copy(vivoSpecsOFFL)), axis=0)
-
-# convert to time domain FID
-m1FidsN, m1FidsS, m1FidsM, m1FidsL = toFids(m1SpecsN), toFids(m1SpecsS), toFids(m1SpecsM), toFids(m1SpecsL)
-m2FidsN, m2FidsS, m2FidsM, m2FidsL = toFids(m2SpecsN), toFids(m2SpecsS), toFids(m2SpecsM), toFids(m2SpecsL)
-m3FidsN, m3FidsS, m3FidsM, m3FidsL = toFids(m3SpecsN), toFids(m3SpecsS), toFids(m3SpecsM), toFids(m3SpecsL)
+m3FidsN = np.concatenate((np.copy(vivoFidsONN), np.copy(vivoFidsOFFN)), axis=0)
+m3FidsS = np.concatenate((np.copy(vivoFidsONS), np.copy(vivoFidsOFFS)), axis=0)
+m3FidsM = np.concatenate((np.copy(vivoFidsONM), np.copy(vivoFidsOFFM)), axis=0)
+m3FidsL = np.concatenate((np.copy(vivoFidsONL), np.copy(vivoFidsOFFL)), axis=0)
 
 # apply frequency and phase correction
 m1FidsN = corrFShift(m1FidsN, timeV, m1FreqLbsN)
@@ -193,8 +190,8 @@ m3SpecsNScansMean, m3SpecsSScansMean, m3SpecsMScansMean, m3SpecsLScansMean = mea
 specsNScans, specsSScans, specsMScans, specsLScans = reformScans(SpecsN), reformScans(SpecsS), reformScans(SpecsM), reformScans(SpecsL)
 specsNScansMean, specsSScansMean, specsMScansMean, specsLScansMean = meanSpec(specsNScans), meanSpec(specsSScans), meanSpec(specsMScans), meanSpec(specsLScans)
 
-# previewData(ppmV, vivoSpecsONN, vivoSpecsOFFN, vivoSpecsONS, vivoSpecsOFFS,
-#                 vivoSpecsONM, vivoSpecsOFFM, vivoSpecsONL, vivoSpecsOFFL,
+# previewData(ppmV, toSpecs(vivoFidsONN), toSpecs(vivoFidsOFFN), toSpecs(vivoFidsONS), toSpecs(vivoFidsOFFS),
+#                 toSpecs(vivoFidsONM), toSpecs(vivoFidsOFFM), toSpecs(vivoFidsONL), toSpecs(vivoFidsOFFL),
 #                 m1SpecsSScansMean, m2SpecsSScansMean, m3SpecsSScansMean,
 #                 m1SpecsMScansMean, m2SpecsMScansMean, m3SpecsMScansMean,
 #                 m1SpecsLScansMean, m2SpecsLScansMean, m3SpecsLScansMean,)
@@ -204,10 +201,10 @@ specsNScansMean, specsSScansMean, specsMScansMean, specsLScansMean = meanSpec(sp
 ########################################################################################################################
 print('Calculating Metrics...')
 allSnrSmall1, meanSnrSmall1, stdSnrSmall1 = calculate_snr(m1SpecsSScansMean, ppmV)
-allLwSmall1, meanLwSmall1, stdLwSmall1 = calculate_linewidth(m1SpecsSScansMean, ppmV)
 allSnrSmall2, meanSnrSmall2, stdSnrSmall2 = calculate_snr(m2SpecsSScansMean, ppmV)
-allLwSmall2, meanLwSmall2, stdLwSmall2 = calculate_linewidth(m2SpecsSScansMean, ppmV)
 allSnrSmall3, meanSnrSmall3, stdSnrSmall3 = calculate_snr(m3SpecsSScansMean, ppmV)
+allLwSmall1, meanLwSmall1, stdLwSmall1 = calculate_linewidth(m1SpecsSScansMean, ppmV)
+allLwSmall2, meanLwSmall2, stdLwSmall2 = calculate_linewidth(m2SpecsSScansMean, ppmV)
 allLwSmall3, meanLwSmall3, stdLwSmall3 = calculate_linewidth(m3SpecsSScansMean, ppmV)
 print(f'{vivoModels[0]} {size[0]} SNR: {meanSnrSmall1} +/- {stdSnrSmall1}')
 print(f'{vivoModels[0]} {size[0]} LW: {meanLwSmall1} +/- {stdLwSmall1}')
@@ -223,10 +220,10 @@ print(f'LW {vivoModels[0]} and {vivoModels[2]}: {wlcx(allLwSmall1, allLwSmall3)[
 print(f'LW {vivoModels[1]} and {vivoModels[2]}: {wlcx(allLwSmall2, allLwSmall3)[1]}')
 
 allSnrMed1, meanSnrMed1, stdSnrMed1 = calculate_snr(m1SpecsMScansMean, ppmV)
-allLwMed1, meanLwMed1, stdLwMed1 = calculate_linewidth(m1SpecsMScansMean, ppmV)
 allSnrMed2, meanSnrMed2, stdSnrMed2 = calculate_snr(m2SpecsMScansMean, ppmV)
-allLwMed2, meanLwMed2, stdLwMed2 = calculate_linewidth(m2SpecsMScansMean, ppmV)
 allSnrMed3, meanSnrMed3, stdSnrMed3 = calculate_snr(m3SpecsMScansMean, ppmV)
+allLwMed1, meanLwMed1, stdLwMed1 = calculate_linewidth(m1SpecsMScansMean, ppmV)
+allLwMed2, meanLwMed2, stdLwMed2 = calculate_linewidth(m2SpecsMScansMean, ppmV)
 allLwMed3, meanLwMed3, stdLwMed3 = calculate_linewidth(m3SpecsMScansMean, ppmV)
 print(f'{vivoModels[0]} {size[1]} SNR: {meanSnrMed1} +/- {stdSnrMed1}')
 print(f'{vivoModels[0]} {size[1]} LW: {meanLwMed1} +/- {stdLwMed1}')
@@ -242,10 +239,10 @@ print(f'LW {vivoModels[0]} and {vivoModels[2]}: {wlcx(allLwMed1, allLwMed3)[1]}'
 print(f'LW {vivoModels[1]} and {vivoModels[2]}: {wlcx(allLwMed2, allLwMed3)[1]}')
 
 allSnrLrg1, meanSnrLrg1, stdSnrLrg1 = calculate_snr(m1SpecsLScansMean, ppmV)
-allLwLrg1, meanLwLrg1, stdLwLrg1 = calculate_linewidth(m1SpecsLScansMean, ppmV)
 allSnrLrg2, meanSnrLrg2, stdSnrLrg2 = calculate_snr(m2SpecsLScansMean, ppmV)
-allLwLrg2, meanLwLrg2, stdLwLrg2 = calculate_linewidth(m2SpecsLScansMean, ppmV)
 allSnrLrg3, meanSnrLrg3, stdSnrLrg3 = calculate_snr(m3SpecsLScansMean, ppmV)
+allLwLrg1, meanLwLrg1, stdLwLrg1 = calculate_linewidth(m1SpecsLScansMean, ppmV)
+allLwLrg2, meanLwLrg2, stdLwLrg2 = calculate_linewidth(m2SpecsLScansMean, ppmV)
 allLwLrg3, meanLwLrg3, stdLwLrg3 = calculate_linewidth(m3SpecsLScansMean, ppmV)
 print(f'{vivoModels[0]} {size[2]} SNR: {meanSnrLrg1} +/- {stdSnrLrg1}')
 print(f'{vivoModels[0]} {size[2]} LW: {meanLwLrg1} +/- {stdLwLrg1}')
@@ -261,10 +258,10 @@ print(f'LW {vivoModels[0]} and {vivoModels[2]}: {wlcx(allLwLrg1, allLwLrg3)[1]}'
 print(f'LW {vivoModels[1]} and {vivoModels[2]}: {wlcx(allLwLrg2, allLwLrg3)[1]}')
 
 allSnrNone1, meanSnrNone1, stdSnrNone1 = calculate_snr(m1SpecsNScansMean, ppmV)
-allLwNone1, meanLwNone1, stdLwNone1 = calculate_linewidth(m1SpecsNScansMean, ppmV)
 allSnrNone2, meanSnrNone2, stdSnrNone2 = calculate_snr(m2SpecsNScansMean, ppmV)
-allLwNone2, meanLwNone2, stdLwNone2 = calculate_linewidth(m2SpecsNScansMean, ppmV)
 allSnrNone3, meanSnrNone3, stdSnrNone3 = calculate_snr(m3SpecsNScansMean, ppmV)
+allLwNone1, meanLwNone1, stdLwNone1 = calculate_linewidth(m1SpecsNScansMean, ppmV)
+allLwNone2, meanLwNone2, stdLwNone2 = calculate_linewidth(m2SpecsNScansMean, ppmV)
 allLwNone3, meanLwNone3, stdLwNone3 = calculate_linewidth(m3SpecsNScansMean, ppmV)
 print(f'{vivoModels[0]} None SNR: {meanSnrNone1} +/- {stdSnrNone1}')
 print(f'{vivoModels[0]} None LW: {meanLwNone1} +/- {stdLwNone1}')
@@ -284,19 +281,91 @@ print(f'LW {vivoModels[1]} and {vivoModels[2]}: {wlcx(allLwNone2, allLwNone3)[1]
 ########################################################################################################################
 plotAllScans(ppmV, m1SpecsNScansMean, m1SpecsSScansMean, m1SpecsMScansMean, m1SpecsLScansMean)
 
-plotAllModels(vivoModels, ppmV, m1SpecsNScansMean, m2SpecsNScansMean, m3SpecsNScansMean,
+plotAllModels(["CC-CNN", "CNN", "MLP"], ppmV, m1SpecsNScansMean, m2SpecsNScansMean, m3SpecsNScansMean,
               m1SpecsSScansMean, m2SpecsSScansMean, m3SpecsSScansMean,
               m1SpecsMScansMean, m2SpecsMScansMean, m3SpecsMScansMean,
               m1SpecsLScansMean, m2SpecsLScansMean, m3SpecsLScansMean,
               specsNScansMean, specsSScansMean, specsMScansMean, specsLScansMean)
 
-plotQMetric(vivoModels, ppmV, m1SpecsNScansMean.real, m2SpecsNScansMean.real, m3SpecsNScansMean.real,
+plotQMetric(["CC-CNN", "CNN", "MLP"], ppmV, m1SpecsNScansMean.real, m2SpecsNScansMean.real, m3SpecsNScansMean.real,
             m1SpecsSScansMean.real, m2SpecsSScansMean.real, m3SpecsSScansMean.real,
             m1SpecsMScansMean.real, m2SpecsMScansMean.real, m3SpecsMScansMean.real,
             m1SpecsLScansMean.real, m2SpecsLScansMean.real, m3SpecsLScansMean.real)
 
-plotQualityMetrics(vivoModels, ppmV,
+plotQualityMetrics(["CC-CNN", "CNN", "MLP"], ppmV,
              m1SpecsNScansMean, m2SpecsNScansMean, m3SpecsNScansMean,
              m1SpecsSScansMean, m2SpecsSScansMean, m3SpecsSScansMean,
              m1SpecsMScansMean, m2SpecsMScansMean, m3SpecsMScansMean,
              m1SpecsLScansMean, m2SpecsLScansMean, m3SpecsLScansMean)
+
+########################################################################################################################
+# ADDITIONAL CODE FOR NUMPY CONVERSION
+########################################################################################################################
+# vivoModels = ["compComp", "Ma_4Convs", "Tapper"]
+# size=["Small", "Medium", "Large", "None"]       #med for new set
+# vivoDir = "C:/Users/Hanna B/Desktop/FPCFinal2024/NumpyData/InVivo/"
+#
+# # import time and ppm
+# ppmV = np.load(f"{vivoDir}GTs/ppm_InVivo.npy")
+# timeV = np.load(f"{vivoDir}GTs/time_InVivo.npy")
+#
+# # load specs, ground truth labels, and prediction labels
+# print('Loading Data...')
+# vivoSpecsONN = np.load(f"{vivoDir}GTs/allSpecsInVivoON_NoOffsets.npy")
+# vivoSpecsOFFN = np.load(f"{vivoDir}GTs/allSpecsInVivoOFF_NoOffsets.npy")
+# vivoSpecsONS = np.load(f"{vivoDir}Corrupt/allSpecsInVivoON_{size[0]}Offsets.npy")
+# vivoSpecsOFFS = np.load(f"{vivoDir}Corrupt/allSpecsInVivoOFF_{size[0]}Offsets.npy")
+# vivoSpecsONM = np.load(f"{vivoDir}Corrupt/allSpecsInVivoON_{size[1]}Offsets.npy")
+# vivoSpecsOFFM = np.load(f"{vivoDir}Corrupt/allSpecsInVivoOFF_{size[1]}Offsets.npy")
+# vivoSpecsONL = np.load(f"{vivoDir}Corrupt/allSpecsInVivoON_{size[2]}Offsets.npy")
+# vivoSpecsOFFL = np.load(f"{vivoDir}Corrupt/allSpecsInVivoOFF_{size[2]}Offsets.npy")
+
+# m1FreqLbsN = np.load(f"{vivoDir}Predictions/PredLabels_{size[3]}_freq_InVivo_{vivoModels[0]}_{size[3]}.npy")
+# m1PhaseLbsN = np.load(f"{vivoDir}Predictions/PredLabels_{size[3]}_phase_InVivo_{vivoModels[0]}_{size[3]}.npy")
+# m1FreqLbsS = np.load(f"{vivoDir}Predictions/PredLabels_{size[0]}_freq_InVivo_{vivoModels[0]}_{size[0]}.npy")
+# m1PhaseLbsS = np.load(f"{vivoDir}Predictions/PredLabels_{size[0]}_phase_InVivo_{vivoModels[0]}_{size[0]}.npy")
+# m1FreqLbsM = np.load(f"{vivoDir}Predictions/PredLabels_{size[1]}_freq_InVivo_{vivoModels[0]}_{size[1]}.npy")
+# m1PhaseLbsM = np.load(f"{vivoDir}Predictions/PredLabels_{size[1]}_phase_InVivo_{vivoModels[0]}_{size[1]}.npy")
+# m1FreqLbsL = np.load(f"{vivoDir}Predictions/PredLabels_{size[2]}_freq_InVivo_{vivoModels[0]}_{size[2]}.npy")
+# m1PhaseLbsL = np.load(f"{vivoDir}Predictions/PredLabels_{size[2]}_phase_InVivo_{vivoModels[0]}_{size[2]}.npy")
+#
+# m2FreqLbsN = np.load(f"{vivoDir}Predictions/PredLabels_{size[3]}_freq_InVivo_{vivoModels[1]}_{size[3]}.npy")
+# m2PhaseLbsN = np.load(f"{vivoDir}Predictions/PredLabels_{size[3]}_phase_InVivo_{vivoModels[1]}_{size[3]}.npy")
+# m2FreqLbsS = np.load(f"{vivoDir}Predictions/PredLabels_{size[0]}_freq_InVivo_{vivoModels[1]}_{size[0]}.npy")
+# m2PhaseLbsS = np.load(f"{vivoDir}Predictions/PredLabels_{size[0]}_phase_InVivo_{vivoModels[1]}_{size[0]}.npy")
+# m2FreqLbsM = np.load(f"{vivoDir}Predictions/PredLabels_{size[1]}_freq_InVivo_{vivoModels[1]}_{size[1]}.npy")
+# m2PhaseLbsM = np.load(f"{vivoDir}Predictions/PredLabels_{size[1]}_phase_InVivo_{vivoModels[1]}_{size[1]}.npy")
+# m2FreqLbsL = np.load(f"{vivoDir}Predictions/PredLabels_{size[2]}_freq_InVivo_{vivoModels[1]}_{size[2]}.npy")
+# m2PhaseLbsL = np.load(f"{vivoDir}Predictions/PredLabels_{size[2]}_phase_InVivo_{vivoModels[1]}_{size[2]}.npy")
+#
+# m3FreqLbsN = np.load(f"{vivoDir}Predictions/PredLabels_{size[3]}_freq_InVivo_{vivoModels[2]}_{size[3]}.npy")
+# m3PhaseLbsN = np.load(f"{vivoDir}Predictions/PredLabels_{size[3]}_phase_InVivo_{vivoModels[2]}_{size[3]}.npy")
+# m3FreqLbsS = np.load(f"{vivoDir}Predictions/PredLabels_{size[0]}_freq_InVivo_{vivoModels[2]}_{size[0]}.npy")
+# m3PhaseLbsS = np.load(f"{vivoDir}Predictions/PredLabels_{size[0]}_phase_InVivo_{vivoModels[2]}_{size[0]}.npy")
+# m3FreqLbsM = np.load(f"{vivoDir}Predictions/PredLabels_{size[1]}_freq_InVivo_{vivoModels[2]}_{size[1]}.npy")
+# m3PhaseLbsM = np.load(f"{vivoDir}Predictions/PredLabels_{size[1]}_phase_InVivo_{vivoModels[2]}_{size[1]}.npy")
+# m3FreqLbsL = np.load(f"{vivoDir}Predictions/PredLabels_{size[2]}_freq_InVivo_{vivoModels[2]}_{size[2]}.npy")
+# m3PhaseLbsL = np.load(f"{vivoDir}Predictions/PredLabels_{size[2]}_phase_InVivo_{vivoModels[2]}_{size[2]}.npy")
+#
+#
+# # assign in vivo data to models
+# FidsN = np.concatenate((np.copy(toFidsAlt(vivoSpecsONN)), np.copy(toFidsAlt(vivoSpecsOFFN))), axis=0)
+# FidsS = np.concatenate((np.copy(toFidsAlt(vivoSpecsONS)), np.copy(toFidsAlt(vivoSpecsOFFS))), axis=0)
+# FidsM = np.concatenate((np.copy(toFidsAlt(vivoSpecsONM)), np.copy(toFidsAlt(vivoSpecsOFFM))), axis=0)
+# FidsL = np.concatenate((np.copy(toFidsAlt(vivoSpecsONL)), np.copy(toFidsAlt(vivoSpecsOFFL))), axis=0)
+# SpecsN, SpecsS, SpecsM, SpecsL = toSpecs(FidsN), toSpecs(FidsS), toSpecs(FidsM), toSpecs(FidsL)
+#
+# m1FidsN = np.concatenate((np.copy(toFidsAlt(vivoSpecsONN)), np.copy(toFidsAlt(vivoSpecsOFFN))), axis=0)
+# m1FidsS = np.concatenate((np.copy(toFidsAlt(vivoSpecsONS)), np.copy(toFidsAlt(vivoSpecsOFFS))), axis=0)
+# m1FidsM = np.concatenate((np.copy(toFidsAlt(vivoSpecsONM)), np.copy(toFidsAlt(vivoSpecsOFFM))), axis=0)
+# m1FidsL = np.concatenate((np.copy(toFidsAlt(vivoSpecsONL)), np.copy(toFidsAlt(vivoSpecsOFFL))), axis=0)
+#
+# m2FidsN = np.concatenate((np.copy(toFidsAlt(vivoSpecsONN)), np.copy(toFidsAlt(vivoSpecsOFFN))), axis=0)
+# m2FidsS = np.concatenate((np.copy(toFidsAlt(vivoSpecsONS)), np.copy(toFidsAlt(vivoSpecsOFFS))), axis=0)
+# m2FidsM = np.concatenate((np.copy(toFidsAlt(vivoSpecsONM)), np.copy(toFidsAlt(vivoSpecsOFFM))), axis=0)
+# m2FidsL = np.concatenate((np.copy(toFidsAlt(vivoSpecsONL)), np.copy(toFidsAlt(vivoSpecsOFFL))), axis=0)
+#
+# m3FidsN = np.concatenate((np.copy(toFidsAlt(vivoSpecsONN)), np.copy(toFidsAlt(vivoSpecsOFFN))), axis=0)
+# m3FidsS = np.concatenate((np.copy(toFidsAlt(vivoSpecsONS)), np.copy(toFidsAlt(vivoSpecsOFFS))), axis=0)
+# m3FidsM = np.concatenate((np.copy(toFidsAlt(vivoSpecsONM)), np.copy(toFidsAlt(vivoSpecsOFFM))), axis=0)
+# m3FidsL = np.concatenate((np.copy(toFidsAlt(vivoSpecsONL)), np.copy(toFidsAlt(vivoSpecsOFFL))), axis=0)

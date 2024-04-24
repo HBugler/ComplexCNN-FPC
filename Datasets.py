@@ -1,7 +1,7 @@
 from torch.utils.data import Dataset
 
 # Convert to [batch_size, channels, number of points (height), number of transients/samples (width)]
-class FPC_Dataset_compReal(Dataset):
+class FPC_Dataset_2C(Dataset):      #previously FPC_Dataset_compReal
     def __init__(self, specs, labels):
         self.specs = specs
         self.labels = labels
@@ -16,7 +16,7 @@ class FPC_Dataset_compReal(Dataset):
 
         return indv_specs, indv_labels
 
-class FPC_Dataset_Ma(Dataset):
+class FPC_Dataset_1C(Dataset):          #previously FPC_Dataset_Ma
     def __init__(self, specs, labels):
         self.specs = specs
         self.labels = labels

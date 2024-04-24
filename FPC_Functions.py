@@ -2,11 +2,20 @@ import numpy as np
 import math
 from random import shuffle
 from scipy.fftpack import fft, ifft, fftshift
-from metric_calculator import calculate_snr, calculate_NewLW, calculate_linewidth, calculate_ModelledLW
+
 ########################################################################################################################
 # Data Functions
 ########################################################################################################################
 def toFidsAlt(specs, axis=1):
+    '''
+    Convert to Fids (time domain) with numpy
+    :param specs: [numSamples, specPoints]
+           axis: *provided in case specs axes are swapped*
+    :return: fids: [numSamples, specPoints]
+    '''
+    return np.fft.fft(np.fft.fftshift(specs, axes=axis), axis=axis)
+
+def toFids(specs, axis=1):
     '''
     Convert to Fids (time domain)
     :param specs: [numSamples, specPoints]
@@ -17,22 +26,12 @@ def toFidsAlt(specs, axis=1):
 
 def toSpecsAlt(fids, axis=1):
     '''
-    Convert to Specs (frequency domain)
+    Convert to Specs (frequency domain) with numpy
     :param fids: [numSamples, specPoints]
            axis: *provided in case fids axes are swapped*
     :return: specs: [numSamples, specPoints]
     '''
-    return fftshift(fft(fids, axis=axis), axes=axis)
-
-def toFids(specs, axis=1):
-    '''
-    Convert to Fids (time domain)
-    :param specs: [numSamples, specPoints]
-           axis: *provided in case specs axes are swapped*
-    :return: fids: [numSamples, specPoints]
-    '''
-    return np.fft.fft(np.fft.fftshift(specs, axes=axis), axis=axis)
-
+    return np.fft.fftshift(np.fft.ifft(fids, axis=axis), axes=axis)
 
 def toSpecs(fids, axis=1):
     '''
@@ -41,7 +40,7 @@ def toSpecs(fids, axis=1):
            axis: *provided in case fids axes are swapped*
     :return: specs: [numSamples, specPoints]
     '''
-    return np.fft.fftshift(np.fft.ifft(fids, axis=axis), axes=axis)
+    return fftshift(fft(fids, axis=axis), axes=axis)
 
 def simScans(direc, numTrans):
     '''
@@ -62,7 +61,7 @@ def addComplexNoise(fids, noiseStd):
            noiseStd: integer (0: low noise (~SNR10), 1: med noise (~SNR5), 2: lots of noise (~SNR2.5))
     :return: fids: [numSamples, specPoints] **with amplitude noise**
     '''
-    normNoise = [np.random.uniform(2, 2.5, size=1), np.random.uniform(4, 4.5, size=1), np.random.uniform(8, 9.5, size=1)]
+    normNoise = [np.random.uniform(8, 9.5, size=1), np.random.uniform(4, 4.5, size=1), np.random.uniform(2, 2.5, size=1)]
     fids = (fids.real + np.random.normal(0, normNoise[noiseStd], size=(fids.shape[0], fids.shape[1]))) + \
            (fids.imag + np.random.normal(0, normNoise[noiseStd], size=(fids.shape[0], fids.shape[1]))) * 1j
     return fids
@@ -116,8 +115,8 @@ def corrPShift(fids, Pshifts):
     return fids
 
 def loadModelPreds(simDir, snr, water, model):
-    phaseLbs = np.load(f"{simDir}Predictions/PredLabels_phase_Sim{snr}_{water}Water_{model}_FINAL.npy")
-    freqLbs = np.load(f"{simDir}Predictions/PredLabels_freq_Sim{snr}_{water}Water_{model}_FINAL.npy")
+    phaseLbs = np.load(f"{simDir}Predictions/PredLabels_Sim{snr}_{water}_{model}_phaseModel.npy")
+    freqLbs = np.load(f"{simDir}Predictions/PredLabels_Sim{snr}_{water}_{model}_freqModel.npy")
     return phaseLbs, freqLbs
 
 def reformScans(specs, numScans=36):
@@ -202,18 +201,28 @@ def getComp(specs):
 def getReal(specs):
     '''
     keep only real values in first channel
-    :param Specs: [numSamples, specPoints]
-    :return: Specs: [numChanns(1), numSamples, specPoints]  **1 channel real only**
+    :param specs: [numSamples, specPoints]
+    :return: specs: [numChanns(1), numSamples, specPoints]  **1 channel real only**
     '''
     return (getComp(specs)[0, :, :])[np.newaxis, :, :]
 
 def window1024(specs, ppm):
     '''
     select window of 1024 points in SIMULATED specs
-    :param Specs: [numChanns, numSamples, specPoints**2048**]
+    :param specs: [numChanns, numSamples, specPoints**2048**]
            ppm: [specPoints]
-    :return: Specs: [numChanns, numSamples, specPoints**1024**]
+    :return: specs: [numChanns, numSamples, specPoints**1024**]
     '''
-    finish, start = np.where(ppm <= 0.01)[0][0], np.where(ppm >= 7.83)[0][-1]
+    start, finish = np.where(ppm <= 0.01)[0][-1], np.where(ppm >= 7.83)[0][0]   # swap start and finish and [-1] and [0] if flipped ppm
     return specs[:, :, start:finish]
 
+def window1024Trim(specs, ppm):
+    '''
+    select window of 1024 points in SIMULATED specs
+    :param specs: [numChanns, numSamples, specPoints**2048**]
+           ppm: [specPoints]
+    :return: specs: [numChanns, numSamples, specPoints**1024**]
+             ppm: [specPoints**1024**]
+    '''
+    start, finish = np.where(ppm <= 0.01)[0][-1], np.where(ppm >= 7.83)[0][0]
+    return specs[:, start:finish], ppm[start:finish]

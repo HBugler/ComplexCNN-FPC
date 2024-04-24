@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-from FPC_Functions import toFids, toSpecs, addFShift, addPShift, simScans, addComplexNoise, normSpecs
+from FPC_Functions import toSpecs, addFShift, addPShift, simScans, addComplexNoise, normSpecs, window1024Trim
 
 ########################################################################################################################
 # Simulated Data
@@ -46,9 +46,13 @@ for snr in snrTypes:
         simFidsOffTest, FNoiseOffTest = addFShift(simFidsOffFcTest, time, shiftRange=20)
         simFidsOnTest, FNoiseOnTest = addFShift(simFidsOnFcTest, time, shiftRange=20)
 
-        # create noise and specs datasets (VERIFY WHAT AXIS TO CONCATENATE ON)
-        PNoiseDev, FNoiseDev = np.concatenate((PNoiseOnDev, PNoiseOffDev)), np.concatenate((FNoiseOnDev, FNoiseOffDev))
-        PNoiseTest, FNoiseTest = np.concatenate((PNoiseOnTest, PNoiseOffTest)), np.concatenate((FNoiseOnTest, FNoiseOffTest))
+        # create noise and specs datasets
+        PNoiseOnDev, PNoiseOffDev = PNoiseOnDev[np.newaxis, :], PNoiseOffDev[np.newaxis, :]
+        FNoiseOnDev, FNoiseOffDev = FNoiseOnDev[np.newaxis, :], FNoiseOffDev[np.newaxis, :]
+        PNoiseOnTest, PNoiseOffTest = PNoiseOnTest[np.newaxis, :], PNoiseOffTest[np.newaxis, :]
+        FNoiseOnTest, FNoiseOffTest = FNoiseOnTest[np.newaxis, :], FNoiseOffTest[np.newaxis, :]
+        PNoiseDev, FNoiseDev = np.concatenate((PNoiseOffDev, PNoiseOnDev), axis=0), np.concatenate((FNoiseOffDev, FNoiseOnDev), axis=0)
+        PNoiseTest, FNoiseTest = np.concatenate((PNoiseOffTest, PNoiseOnTest), axis=0), np.concatenate((FNoiseOffTest, FNoiseOnTest), axis=0)
 
         # convert to specs
         simSpecsOffFcDev, simSpecsOnFcDev = toSpecs(simFidsOffFcDev), toSpecs(simFidsOnFcDev)
@@ -75,18 +79,14 @@ for snr in snrTypes:
 # In Vivo Data
 ########################################################################################################################
 # create folder for corrupt in vivo data
-vivoDir = "C:/Users/Hanna B/Desktop/FPCFinal2024/SpecsGeneration/Data/InVivo/"
-vivoCorrPath = os.path.join(vivoDir, "Corrupt")
-os.mkdir(vivoCorrPath)
+vivoDir = "C:/Users/Hanna B/Desktop/FPCFinal2024/Data/InVivo/"
+# vivoCorrPath = os.path.join(vivoDir, "Corrupt")
+# os.mkdir(vivoCorrPath)
 
 # import time and "ground truths"
 timeV = np.load(f"{vivoDir}GTs/time_InVivo.npy")
-vivoSpecsOn = np.load(f"{vivoDir}GTs/allSpecsInVivoON_NoOffsets.npy")
-vivoSpecsOff = np.load(f"{vivoDir}GTs/allSpecsInVivoOFF_NoOffsets.npy")
-
-# convert to fids
-vivoFidsOff = toFids(vivoSpecsOff)
-vivoFidsOn = toFids(vivoSpecsOn)
+vivoFidsOff = np.load(f"{vivoDir}GTs/allFidsInVivoOFF_NoOffsets.npy")
+vivoFidsOn = np.load(f"{vivoDir}GTs/allFidsInVivoON_NoOffsets.npy")
 
 # add phase shifts (creation frequency corrected fids)
 vivoFidsOffFcSmall, PNoiseOffSmall = addPShift(np.copy(vivoFidsOff), 20)
@@ -104,10 +104,25 @@ vivoFidsOnMed, FNoiseOnMed = addFShift(np.copy(vivoFidsOn), timeV, 10)
 vivoFidsOffLarge, FNoiseOffLarge = addFShift(np.copy(vivoFidsOff), timeV, 20)
 vivoFidsOnLarge, FNoiseOnLarge = addFShift(np.copy(vivoFidsOn), timeV, 20)
 
+# save in vivo fids to use for correction later
+np.save(f"{vivoDir}Corrupt/vivoFidsOffSmallOffsets.npy", vivoFidsOffSmall)
+np.save(f"{vivoDir}Corrupt/vivoFidsOnSmallOffsets.npy", vivoFidsOnSmall)
+np.save(f"{vivoDir}Corrupt/vivoFidsOffMedOffsets.npy", vivoFidsOffMed)
+np.save(f"{vivoDir}Corrupt/vivoFidsOnMedOffsets.npy", vivoFidsOnMed)
+np.save(f"{vivoDir}Corrupt/vivoFidsOffLargeOffsets.npy", vivoFidsOffLarge)
+np.save(f"{vivoDir}Corrupt/vivoFidsOnLargeOffsets.npy", vivoFidsOnLarge)
+
 # create noise and specs datasets (VERIFY WHAT AXIS TO CONCATENATE ON)
-PNoiseSmall, FNoiseSmall = np.concatenate((PNoiseOnSmall, PNoiseOffSmall)), np.concatenate((FNoiseOnSmall, FNoiseOffSmall))
-PNoiseMed, FNoiseMed = np.concatenate((PNoiseOnMed, PNoiseOffMed)), np.concatenate((FNoiseOnMed, FNoiseOffMed))
-PNoiseLarge, FNoiseLarge = np.concatenate((PNoiseOnLarge, PNoiseOffLarge)), np.concatenate((FNoiseOnLarge, FNoiseOffLarge))
+PNoiseOnSmall, PNoiseOffSmall = PNoiseOnSmall[np.newaxis, :], PNoiseOffSmall[np.newaxis, :]
+FNoiseOnSmall, FNoiseOffSmall = FNoiseOnSmall[np.newaxis, :], FNoiseOffSmall[np.newaxis, :]
+PNoiseOnMed, PNoiseOffMed = PNoiseOnMed[np.newaxis, :], PNoiseOffMed[np.newaxis, :]
+FNoiseOnMed, FNoiseOffMed = FNoiseOnMed[np.newaxis, :], FNoiseOffMed[np.newaxis, :]
+PNoiseOnLarge, PNoiseOffLarge = PNoiseOnLarge[np.newaxis, :], PNoiseOffLarge[np.newaxis, :]
+FNoiseOnLarge, FNoiseOffLarge = FNoiseOnLarge[np.newaxis, :], FNoiseOffLarge[np.newaxis, :]
+
+PNoiseSmall, FNoiseSmall = np.concatenate((PNoiseOnSmall, PNoiseOffSmall), axis=0), np.concatenate((FNoiseOnSmall, FNoiseOffSmall), axis=0)
+PNoiseMed, FNoiseMed = np.concatenate((PNoiseOnMed, PNoiseOffMed), axis=0), np.concatenate((FNoiseOnMed, FNoiseOffMed), axis=0)
+PNoiseLarge, FNoiseLarge = np.concatenate((PNoiseOnLarge, PNoiseOffLarge), axis=0), np.concatenate((FNoiseOnLarge, FNoiseOffLarge), axis=0)
 
 # convert to specs
 vivoSpecsOffSmall, vivoSpecsOnSmall = toSpecs(vivoFidsOffSmall), toSpecs(vivoFidsOnSmall)
@@ -117,7 +132,7 @@ vivoSpecsOffFcMed, vivoSpecsOnFcMed = toSpecs(vivoFidsOffFcMed), toSpecs(vivoFid
 vivoSpecsOffLarge, vivoSpecsOnLarge = toSpecs(vivoFidsOffLarge), toSpecs(vivoFidsOnLarge)
 vivoSpecsOffFcLarge, vivoSpecsOnFcLarge = toSpecs(vivoFidsOffFcLarge), toSpecs(vivoFidsOnFcLarge)
 
-# save in vivo data
+# save in vivo specs to provide to model
 np.save(f"{vivoDir}Corrupt/vivoSpecsOffSmallOffsets.npy", vivoSpecsOffSmall)
 np.save(f"{vivoDir}Corrupt/vivoSpecsOnSmallOffsets.npy", vivoSpecsOnSmall)
 np.save(f"{vivoDir}Corrupt/vivoSpecsOffFcSmallOffsets.npy", vivoSpecsOffFcSmall)
@@ -145,6 +160,29 @@ np.save(f"{vivoDir}Corrupt/vivoFNoiseLargeOffsets.npy", FNoiseLarge)
 ppmS = np.load(f"{simDir}GTs/ppm_Sim.npy")
 ppmV = np.load(f"{vivoDir}GTs/ppm_InVivo.npy")
 
+vivoSpecsOffSmall = np.load(f"{vivoDir}Corrupt/vivoSpecsOffSmallOffsets.npy")
+vivoSpecsOnSmall = np.load(f"{vivoDir}Corrupt/vivoSpecsOnSmallOffsets.npy")
+vivoSpecsOffFcSmall = np.load(f"{vivoDir}Corrupt/vivoSpecsOffFcSmallOffsets.npy")
+vivoSpecsOnFcSmall = np.load(f"{vivoDir}Corrupt/vivoSpecsOnFcSmallOffsets.npy")
+
+vivoSpecsOffMed = np.load(f"{vivoDir}Corrupt/vivoSpecsOffMedOffsets.npy")
+vivoSpecsOnMed = np.load(f"{vivoDir}Corrupt/vivoSpecsOnMedOffsets.npy")
+vivoSpecsOffFcMed = np.load(f"{vivoDir}Corrupt/vivoSpecsOffFcMedOffsets.npy")
+vivoSpecsOnFcMed = np.load(f"{vivoDir}Corrupt/vivoSpecsOnFcMedOffsets.npy")
+
+vivoSpecsOffLarge = np.load(f"{vivoDir}Corrupt/vivoSpecsOffLargeOffsets.npy")
+vivoSpecsOnLarge = np.load(f"{vivoDir}Corrupt/vivoSpecsOnLargeOffsets.npy")
+vivoSpecsOffFcLarge = np.load(f"{vivoDir}Corrupt/vivoSpecsOffFcLargeOffsets.npy")
+vivoSpecsOnFcLarge = np.load(f"{vivoDir}Corrupt/vivoSpecsOnFcLargeOffsets.npy")
+
+simSpecsOffDev = np.load(f"{simDir}Corrupt/simSpecsOffPos2_5Dev.npy")
+simSpecsOnDev = np.load(f"{simDir}Corrupt/simSpecsOnMix5Dev.npy")
+simSpecsOffTest = np.load(f"{simDir}Corrupt/simSpecsOffPos10Test.npy")
+simSpecsOnTest = np.load(f"{simDir}Corrupt/simSpecsOnPos10Test.npy")
+
+simSpecsOffTest1, ppmSTrim = window1024Trim(normSpecs(simSpecsOffTest), ppmS)
+vivoSpecsOffSmall1, ppmVTrim = window1024Trim(normSpecs(vivoSpecsOffSmall), ppmV)
+
 fig, axs = plt.subplots(2, 2)
 fig.suptitle("Sample In Vivo (blue) and Simulated (red) Spectra")
 axs[0,0].set_xlabel('ppm')
@@ -157,8 +195,10 @@ axs[0,1].plot(ppmV, normSpecs(vivoSpecsOffLarge)[-1, :].real, 'blue')
 axs[0,1].plot(ppmS, normSpecs(simSpecsOffDev)[-1, :].real, 'red')
 axs[1,0].plot(ppmV, normSpecs(vivoSpecsOnSmall)[0, :].real, 'blue')
 axs[1,0].plot(ppmS, normSpecs(simSpecsOnTest)[0, :].real, 'red')
-axs[1,1].plot(ppmV, normSpecs(vivoSpecsOffSmall)[0, :].real, 'blue')
-axs[1,1].plot(ppmS, normSpecs(simSpecsOffTest)[0, :].real, 'red')
+# axs[1,1].plot(ppmV, normSpecs(vivoSpecsOffSmall)[0, :].real, 'purple')
+# axs[1,1].plot(ppmS, normSpecs(simSpecsOffTest)[0, :].real, 'orange')
+axs[1,1].plot(vivoSpecsOffSmall1[0, :].real, 'blue')
+axs[1,1].plot(simSpecsOffTest1[0, :].real, 'red')
 axs[0,0].get_yaxis().set_visible(False)
 axs[0,1].get_yaxis().set_visible(False)
 axs[1,0].get_yaxis().set_visible(False)
