@@ -1,17 +1,15 @@
 # FPC Winter 2024
+import argparse
 import numpy as np
 import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
 import torch.optim as optim
 from torch.utils.data import DataLoader
-import argparse
 
 from FPC_Functions import normSpecs, divideDev, shuffleData, getMag, getReal, getComp, window1024, toFids, toSpecs, corrFShift
-from Datasets import FPC_Dataset_Tapper, FPC_Dataset_1C, FPC_Dataset_2C
-from AblationStudyModels import compIn_realConv, compIn_compConv, realIn_realConv
-from TapperModel import tapperModel
-from MaModel import maModel
+from Datasets import FPC_Dataset_MLP, FPC_Dataset_1C, FPC_Dataset_2C
+from modelsFPC import CNN_Model, MLP_Model, compIn_compConv, compIn_realConv, realIn_realConv
 
 ########################################################################################################################
 # SIMULATED TRAINING/TESTING USER ARGUMENTS
@@ -21,7 +19,7 @@ simParser.add_argument("nmb_epochs", type=int, default=200, nargs='?', help="Num
 simParser.add_argument("batch_size", type=int, default=64, nargs='?', help="Batch size")
 simParser.add_argument("learn_r", type=float, default=0.001, nargs='?', help="Learning rate")
 simParser.add_argument("lr_scheduler_freq", type=int, default=25, nargs='?', help="Number of epochs until next learning rate update")
-simParser.add_argument("-addSimModel", '--simModelTypes', action='append', default=['Tapper', 'Ma_4Convs', 'compComp', 'compReal', 'realReal'], nargs='*', help='Model types: Tapper, Ma_4Convs, compComp, compReal, and realReal')
+simParser.add_argument("-addSimModel", '--simModelTypes', action='append', default=['MLP', 'CNN', 'compComp', 'compReal', 'realReal'], nargs='*', help='Model types: MLP, CNN, compComp, compReal, and realReal')
 simParser.add_argument("-addWater", '--waterTypes', action='append', default=['Pos', 'Mix', 'None'], nargs='*', help='Water types: Pos, Mix, None')
 simParser.add_argument("-addSNR", '--snrTypes', action='append', default=['10', '5', '2_5'], nargs='*', help='SNR types: 10, 5, 2_5')
 simParser.add_argument("-addNet", '--netTypes', action='append', default=['freq', 'phase'], nargs='*', help='Net types: freq, phase')
@@ -123,14 +121,14 @@ for water in simParser.waterTypes:
 
                 # select based on network type and assign data to dataloader
                 if net == "freq":
-                    if (model_name == "Ma_4Convs") or (model_name == "realReal"):
+                    if (model_name == "CNN") or (model_name == "realReal"):
                         train_dataset = FPC_Dataset_1C(allSpecsTrain_MagTensor, trainFreqLabelsTensor)
                         val_dataset = FPC_Dataset_1C(allSpecsVal_MagTensor, valFreqLabelsTensor)
                         test_dataset = FPC_Dataset_1C(allSpecsTest_MagTensor, testFreqLabelsTensor)
-                    elif (model_name == "Tapper"):
-                        train_dataset = FPC_Dataset_Tapper(allSpecsTrain_MagTensor, trainFreqLabelsTensor)
-                        val_dataset = FPC_Dataset_Tapper(allSpecsVal_MagTensor, valFreqLabelsTensor)
-                        test_dataset = FPC_Dataset_Tapper(allSpecsTest_MagTensor, testFreqLabelsTensor)
+                    elif (model_name == "MLP"):
+                        train_dataset = FPC_Dataset_MLP(allSpecsTrain_MagTensor, trainFreqLabelsTensor)
+                        val_dataset = FPC_Dataset_MLP(allSpecsVal_MagTensor, valFreqLabelsTensor)
+                        test_dataset = FPC_Dataset_MLP(allSpecsTest_MagTensor, testFreqLabelsTensor)
                     elif (model_name == "compReal") or ("compComp"):
                         train_dataset = FPC_Dataset_2C(allSpecsTrain_2ChanCompTensor, trainFreqLabelsTensor)
                         val_dataset = FPC_Dataset_2C(allSpecsVal_2ChanCompTensor, valFreqLabelsTensor)
@@ -140,14 +138,14 @@ for water in simParser.waterTypes:
                         break
 
                 elif net == "phase":
-                    if (model_name == "Ma_4Convs") or (model_name == "realReal"):
+                    if (model_name == "CNN") or (model_name == "realReal"):
                         train_dataset = FPC_Dataset_1C(freqCorrTrain_RealTensor, trainPhaseLabelsTensor)
                         val_dataset = FPC_Dataset_1C(freqCorrVal_RealTensor, valPhaseLabelsTensor)
                         test_dataset = FPC_Dataset_1C(freqCorr_specs_test_real_tensor, testPhaseLabelsTensor)
-                    elif (model_name == "Tapper"):
-                        train_dataset = FPC_Dataset_Tapper(freqCorrTrain_RealTensor, trainPhaseLabelsTensor)
-                        val_dataset = FPC_Dataset_Tapper(freqCorrVal_RealTensor, valPhaseLabelsTensor)
-                        test_dataset = FPC_Dataset_Tapper(freqCorr_specs_test_real_tensor, testPhaseLabelsTensor)
+                    elif (model_name == "MLP"):
+                        train_dataset = FPC_Dataset_MLP(freqCorrTrain_RealTensor, trainPhaseLabelsTensor)
+                        val_dataset = FPC_Dataset_MLP(freqCorrVal_RealTensor, valPhaseLabelsTensor)
+                        test_dataset = FPC_Dataset_MLP(freqCorr_specs_test_real_tensor, testPhaseLabelsTensor)
                     elif (model_name == "compReal") or ("compComp"):
                         train_dataset = FPC_Dataset_2C(freqCorrTrain_Tensor, trainPhaseLabelsTensor)
                         val_dataset = FPC_Dataset_2C(freqCorrVal_Tensor, valPhaseLabelsTensor)
@@ -161,10 +159,10 @@ for water in simParser.waterTypes:
                 test_loader = DataLoader(dataset=test_dataset, batch_size=simParser.batch_size, shuffle=False)
 
                 # load correct model
-                if model_name == "Ma_4Convs":
-                    model = maModel().float()
-                elif model_name == "Tapper":
-                    model = tapperModel().float()
+                if model_name == "CNN":
+                    model = CNN_Model().float()
+                elif model_name == "MLP":
+                    model = MLP_Model().float()
                 elif model_name == "compReal":
                     model = compIn_realConv().float()
                 elif model_name == "compComp":
@@ -287,7 +285,7 @@ for water in simParser.waterTypes:
 ########################################################################################################################
 vivoParser = argparse.ArgumentParser()
 vivoParser.add_argument("batch_size", type=int, default=64, nargs='?', help="Batch size")
-vivoParser.add_argument("-addVivoModel", '--vivoModelTypes', action='append', default=['compComp', 'Tapper', 'Ma_4Convs', 'compReal'], nargs='*', help='Model types: Tapper, Ma_4Convs, compComp')
+vivoParser.add_argument("-addVivoModel", '--vivoModelTypes', action='append', default=['compComp', 'MLP', 'CNN', 'compReal'], nargs='*', help='Model types: MLP, CNN, compComp')
 vivoParser.add_argument("-addOffsetSize", '--offsetSize', action='append', default=['None', 'Small', 'Med', 'Large'], nargs='*', help='Offset sizes: None, Small, Med, Large')
 vivoParser.add_argument("-addNet", '--netTypes', action='append', default=['freq', 'phase'], nargs='*', help='Net types: freq, phase')
 vivoParser = vivoParser.parse_args()
@@ -305,10 +303,10 @@ loss_fn = nn.L1Loss()
 # load correct model
 for model_name in vivoParser.vivoModelTypes:
     for net in vivoParser.netTypes:
-        if model_name == "Ma_4Convs":
-            model = maModel().float()
-        elif model_name == "Tapper":
-            model = tapperModel().float()
+        if model_name == "CNN":
+            model = CNN_Model().float()
+        elif model_name == "MLP":
+            model = MLP_Model().float()
         elif model_name == "compReal":
             model = compIn_realConv().float()
         elif model_name == "compComp":
@@ -357,10 +355,10 @@ for model_name in vivoParser.vivoModelTypes:
 #########################################################################################################################
             # select network for testing
             if net == "freq":
-                if model_name == "Ma_4Convs":
+                if model_name == "CNN":
                     test_dataset = FPC_Dataset_1C(allSpecsTest_MagTensor, testFreqLabelsTensor)
-                elif model_name == "Tapper":
-                    test_dataset = FPC_Dataset_Tapper(allSpecsTest_MagTensor, testFreqLabelsTensor)
+                elif model_name == "MLP":
+                    test_dataset = FPC_Dataset_MLP(allSpecsTest_MagTensor, testFreqLabelsTensor)
                 elif (model_name == "compReal") or (model_name == "compComp"):
                     test_dataset = FPC_Dataset_2C(allSpecsTest_2ChanCompTensor, testFreqLabelsTensor)
                 else:
@@ -384,10 +382,10 @@ for model_name in vivoParser.vivoModelTypes:
                 freqCorr_specs_test_real_tensor = torch.from_numpy(window1024(freqCorr_specsTest_real, ppmVivo)).float()
 
                 # select model and give data to dataloader
-                if model_name == "Ma_4Convs":
+                if model_name == "CNN":
                     test_dataset = FPC_Dataset_1C(freqCorr_specs_test_real_tensor,  testPhaseLabelsTensor)
-                elif model_name == "Tapper":
-                    test_dataset = FPC_Dataset_Tapper(freqCorr_specs_test_real_tensor, testPhaseLabelsTensor)
+                elif model_name == "MLP":
+                    test_dataset = FPC_Dataset_MLP(freqCorr_specs_test_real_tensor, testPhaseLabelsTensor)
                 elif (model_name == "compReal") or (model_name == "compComp"):
                     test_dataset = FPC_Dataset_2C(freqCorr_specs_test_tensor, testPhaseLabelsTensor)
                 else:  # assumed to be CR-CNN

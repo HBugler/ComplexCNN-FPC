@@ -7,7 +7,7 @@ from FPC_Functions import toSpecs, addFShift, addPShift, simScans, addComplexNoi
 # Simulated Data
 ########################################################################################################################
 # create folder for corrupt simulated data
-simDir = "C:/Users/Hanna B/Desktop/FPCFinal2024/Data/Simulated/"
+simDir = "C:/Users/Desktop/Simulated/"
 simCorrPath = os.path.join(simDir, "Corrupt")
 os.mkdir(simCorrPath)
 
@@ -79,9 +79,9 @@ for snr in snrTypes:
 # In Vivo Data
 ########################################################################################################################
 # create folder for corrupt in vivo data
-vivoDir = "C:/Users/Hanna B/Desktop/FPCFinal2024/Data/InVivo/"
-# vivoCorrPath = os.path.join(vivoDir, "Corrupt")
-# os.mkdir(vivoCorrPath)
+vivoDir = "C:/Users/Desktop/InVivo/"
+vivoCorrPath = os.path.join(vivoDir, "Corrupt")
+os.mkdir(vivoCorrPath)
 
 # import time and "ground truths"
 timeV = np.load(f"{vivoDir}GTs/time_InVivo.npy")
@@ -195,8 +195,6 @@ axs[0,1].plot(ppmV, normSpecs(vivoSpecsOffLarge)[-1, :].real, 'blue')
 axs[0,1].plot(ppmS, normSpecs(simSpecsOffDev)[-1, :].real, 'red')
 axs[1,0].plot(ppmV, normSpecs(vivoSpecsOnSmall)[0, :].real, 'blue')
 axs[1,0].plot(ppmS, normSpecs(simSpecsOnTest)[0, :].real, 'red')
-# axs[1,1].plot(ppmV, normSpecs(vivoSpecsOffSmall)[0, :].real, 'purple')
-# axs[1,1].plot(ppmS, normSpecs(simSpecsOffTest)[0, :].real, 'orange')
 axs[1,1].plot(vivoSpecsOffSmall1[0, :].real, 'blue')
 axs[1,1].plot(simSpecsOffTest1[0, :].real, 'red')
 axs[0,0].get_yaxis().set_visible(False)

@@ -31,7 +31,7 @@ class FPC_Dataset_1C(Dataset):          #previously FPC_Dataset_Ma
 
         return indv_specs, indv_labels
 
-class FPC_Dataset_Tapper(Dataset):
+class FPC_Dataset_MLP(Dataset):
     def __init__(self, specs, labels):
         self.specs = specs
         self.labels = labels

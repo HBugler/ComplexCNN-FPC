@@ -2,14 +2,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from metric_calculator import calculate_snr, calculate_linewidth
-from FPC_Functions import normReal, normRealTEMP
 import random
 
 def previewData(vivoPPM, vivoSpecsONN, vivoSpecsOFFN, vivoSpecsONS, vivoSpecsOFFS,
                 vivoSpecsONM, vivoSpecsOFFM, vivoSpecsONL, vivoSpecsOFFL,
-                CRspecsSmall_Mscans, MaspecsSmall_Mscans, TpspecsSmall_Mscans,
-                CRspecsMed_Mscans, MaspecsMed_Mscans, TpspecsMed_Mscans,
-                CRspecsLarge_Mscans, MaspecsLarge_Mscans, TpspecsLarge_Mscans): #requires corrected data
+                m1_specsSmall_Mscans, m2_specsSmall_Mscans, m3_specsSmall_Mscans,
+                m1_specsMed_Mscans, m2_specsMed_Mscans, m3_specsMed_Mscans,
+                m1_specsLarge_Mscans, m2_specsLarge_Mscans, m3_specsLarge_Mscans): #requires corrected data
 
     for iii in range(0, 32):
         fig1, (ax1, ax2, ax3) = plt.subplots(3)
@@ -20,9 +19,9 @@ def previewData(vivoPPM, vivoSpecsONN, vivoSpecsOFFN, vivoSpecsONS, vivoSpecsOFF
         ax2.plot(vivoPPM, (vivoSpecsONS[160*(iii):160*(iii+1), :]-vivoSpecsOFFS[160*(iii):160*(iii+1), :]).mean(axis=0).real-0.01, 'blue')
         ax2.plot(vivoPPM, (vivoSpecsONS[160*(iii):160*(iii+1), :]-vivoSpecsOFFS[160*(iii):160*(iii+1), :]).mean(axis=0).real+0.01, 'green')
         ax3.set_title("Small Offsets compReal CORRECTED")
-        ax3.plot(vivoPPM, CRspecsSmall_Mscans[iii, :].real, 'orange')
-        ax3.plot(vivoPPM, MaspecsSmall_Mscans[iii, :].real-2000, 'blue')
-        ax3.plot(vivoPPM, TpspecsSmall_Mscans[iii, :].real+2000, 'green')
+        ax3.plot(vivoPPM, m1_specsSmall_Mscans[iii, :].real, 'orange')
+        ax3.plot(vivoPPM, m2_specsSmall_Mscans[iii, :].real-2000, 'blue')
+        ax3.plot(vivoPPM, m3_specsSmall_Mscans[iii, :].real+2000, 'green')
         plt.show()
 
         fig2, (ax11, ax22, ax33) = plt.subplots(3)
@@ -33,9 +32,9 @@ def previewData(vivoPPM, vivoSpecsONN, vivoSpecsOFFN, vivoSpecsONS, vivoSpecsOFF
         ax22.plot(vivoPPM, (vivoSpecsONM[160*(iii):160*(iii+1), :]-vivoSpecsOFFM[160*(iii):160*(iii+1), :]).mean(axis=0).real-0.01, 'blue')
         ax22.plot(vivoPPM, (vivoSpecsONM[160*(iii):160*(iii+1), :]-vivoSpecsOFFM[160*(iii):160*(iii+1), :]).mean(axis=0).real+0.01, 'green')
         ax33.set_title("Medium Offsets compReal CORRECTED")
-        ax33.plot(vivoPPM, CRspecsMed_Mscans[iii, :].real, 'orange')
-        ax33.plot(vivoPPM, MaspecsMed_Mscans[iii, :].real-2000, 'blue')
-        ax33.plot(vivoPPM, TpspecsMed_Mscans[iii, :].real+2000, 'green')
+        ax33.plot(vivoPPM, m1_specsMed_Mscans[iii, :].real, 'orange')
+        ax33.plot(vivoPPM, m2_specsMed_Mscans[iii, :].real-2000, 'blue')
+        ax33.plot(vivoPPM, m3_specsMed_Mscans[iii, :].real+2000, 'green')
         plt.show()
 
         fig3, (ax111, ax222, ax333) = plt.subplots(3)
@@ -44,24 +43,24 @@ def previewData(vivoPPM, vivoSpecsONN, vivoSpecsOFFN, vivoSpecsONS, vivoSpecsOFF
         ax222.set_title("Large Offsets")
         ax222.plot(vivoPPM, (vivoSpecsONL[160*(iii):160*(iii+1), :]-vivoSpecsOFFL[160*(iii):160*(iii+1), :]).mean(axis=0).real, 'blue')
         ax333.set_title("Large Offsets compReal CORRECTED")
-        ax333.plot(vivoPPM, CRspecsLarge_Mscans[iii, :].real, 'orange')
-        ax333.plot(vivoPPM, MaspecsLarge_Mscans[iii, :].real-2000, 'blue')
-        ax333.plot(vivoPPM, TpspecsLarge_Mscans[iii, :].real+2000, 'green')
+        ax333.plot(vivoPPM, m1_specsLarge_Mscans[iii, :].real, 'orange')
+        ax333.plot(vivoPPM, m2_specsLarge_Mscans[iii, :].real-2000, 'blue')
+        ax333.plot(vivoPPM, m3_specsLarge_Mscans[iii, :].real+2000, 'green')
         plt.show()
 
         fig4, (ax111, ax222, ax333) = plt.subplots(3)
         ax111.set_title("compReal Corrections")
-        ax111.plot(vivoPPM, CRspecsSmall_Mscans[iii, :].real-2000, 'black')
-        ax111.plot(vivoPPM, CRspecsMed_Mscans[iii, :].real, 'purple')
-        ax111.plot(vivoPPM, CRspecsLarge_Mscans[iii, :].real+2000, 'red')
+        ax111.plot(vivoPPM, m1_specsSmall_Mscans[iii, :].real-2000, 'black')
+        ax111.plot(vivoPPM, m1_specsMed_Mscans[iii, :].real, 'purple')
+        ax111.plot(vivoPPM, m1_specsLarge_Mscans[iii, :].real+2000, 'red')
         ax222.set_title("Ma Corrections")
-        ax222.plot(vivoPPM, MaspecsSmall_Mscans[iii, :].real-2000, 'black')
-        ax222.plot(vivoPPM, MaspecsMed_Mscans[iii, :].real, 'purple')
-        ax222.plot(vivoPPM, MaspecsLarge_Mscans[iii, :].real+2000, 'red')
+        ax222.plot(vivoPPM, m2_specsSmall_Mscans[iii, :].real-2000, 'black')
+        ax222.plot(vivoPPM, m2_specsMed_Mscans[iii, :].real, 'purple')
+        ax222.plot(vivoPPM, m2_specsLarge_Mscans[iii, :].real+2000, 'red')
         ax333.set_title("Tapper Corrections")
-        ax333.plot(vivoPPM, TpspecsSmall_Mscans[iii, :].real-2000, 'black')
-        ax333.plot(vivoPPM, TpspecsMed_Mscans[iii, :].real, 'purple')
-        ax333.plot(vivoPPM, TpspecsLarge_Mscans[iii, :].real+2000, 'red')
+        ax333.plot(vivoPPM, m3_specsSmall_Mscans[iii, :].real-2000, 'black')
+        ax333.plot(vivoPPM, m3_specsMed_Mscans[iii, :].real, 'purple')
+        ax333.plot(vivoPPM, m3_specsLarge_Mscans[iii, :].real+2000, 'red')
         plt.show()
 
 
@@ -145,10 +144,10 @@ def plotAllScans(ppm, noOffsets, smallOffsets, mediumOffsets, largeOffsets): #re
     plt.show()
 
 
-def plotAllModels(setName, ppm, offsetsCompRealN, offsetsMaN, offsetsCompTapperN,
-              offsetsCompRealS, offsetsMaS, offsetsCompTapperS,
-              offsetsCompRealM, offsetsMaM, offsetsCompTapperM,
-              offsetsCompRealL, offsetsMaL, offsetsCompTapperL,
+def plotAllModels(setName, ppm, offsetsm1N, offsetsm2N, offsetsm3N,
+              offsetsm1S, offsetsm2S, offsetsm3S,
+              offsetsm1M, offsetsm2M, offsetsm3M,
+              offsetsm1L, offsetsm2L, offsetsm3L,
               offsetsUncorrN, offsetsUncorrS, offsetsUncorrM, offsetsUncorrL):
 
     randScan = random.randint(0, 29)
@@ -163,9 +162,9 @@ def plotAllModels(setName, ppm, offsetsCompRealN, offsetsMaN, offsetsCompTapperN
         ax0.set_xlabel('ppm')
         ax0.set_xlim(1.5, 5)
         ax0.plot(ppm, offsetsUncorrN[randS, :].real-7500000, 'black', alpha=0.75, label='Uncorr', linewidth=3)
-        ax0.plot(ppm, offsetsCompTapperN[randS, :].real+7500000, 'green', alpha=0.75, label=setName[2], linewidth=3)
-        ax0.plot(ppm, offsetsMaN[randS, :].real+15000000, 'blue', alpha=0.75, label=setName[1], linewidth=3)
-        ax0.plot(ppm, offsetsCompRealN[randS, :].real, 'orange', alpha=0.75, label=setName[0], linewidth=3)
+        ax0.plot(ppm, offsetsm3N[randS, :].real+7500000, 'green', alpha=0.75, label=setName[2], linewidth=3)
+        ax0.plot(ppm, offsetsm2N[randS, :].real+15000000, 'blue', alpha=0.75, label=setName[1], linewidth=3)
+        ax0.plot(ppm, offsetsm1N[randS, :].real, 'orange', alpha=0.75, label=setName[0], linewidth=3)
         ax0.get_yaxis().set_visible(False)
         ax0.invert_xaxis()
 
@@ -173,9 +172,9 @@ def plotAllModels(setName, ppm, offsetsCompRealN, offsetsMaN, offsetsCompTapperN
         ax1.set_xlabel('ppm')
         ax1.set_xlim(1.5, 5)
         ax1.plot(ppm, offsetsUncorrS[randS, :].real-7500000, 'black', alpha=0.75, label='Uncorr', linewidth=3)
-        ax1.plot(ppm, offsetsCompTapperS[randS, :].real+7500000, 'green', alpha=0.75, label=setName[2], linewidth=3)
-        ax1.plot(ppm, offsetsMaS[randS, :].real+15000000, 'blue', alpha=0.75, label=setName[1], linewidth=3)
-        ax1.plot(ppm, offsetsCompRealS[randS, :].real, 'orange', alpha=0.75, label=setName[0], linewidth=3)
+        ax1.plot(ppm, offsetsm3S[randS, :].real+7500000, 'green', alpha=0.75, label=setName[2], linewidth=3)
+        ax1.plot(ppm, offsetsm2S[randS, :].real+15000000, 'blue', alpha=0.75, label=setName[1], linewidth=3)
+        ax1.plot(ppm, offsetsm1S[randS, :].real, 'orange', alpha=0.75, label=setName[0], linewidth=3)
         ax1.get_yaxis().set_visible(False)
         ax1.invert_xaxis()
 
@@ -183,9 +182,9 @@ def plotAllModels(setName, ppm, offsetsCompRealN, offsetsMaN, offsetsCompTapperN
         ax2.set_xlabel('ppm')
         ax2.set_xlim(1.5, 5)
         ax2.plot(ppm, offsetsUncorrM[randS, :].real-7500000, 'black', alpha=0.75, label='Uncorr', linewidth=3)
-        ax2.plot(ppm, offsetsCompTapperM[randM, :].real+7500000, 'green', alpha=0.75, label=setName[2], linewidth=3)
-        ax2.plot(ppm, offsetsMaM[randM, :].real+15000000, 'blue', alpha=0.75, label=setName[1], linewidth=3)
-        ax2.plot(ppm, offsetsCompRealM[randM, :].real, 'orange', alpha=0.75, label=setName[0], linewidth=3)
+        ax2.plot(ppm, offsetsm3M[randM, :].real+7500000, 'green', alpha=0.75, label=setName[2], linewidth=3)
+        ax2.plot(ppm, offsetsm2M[randM, :].real+15000000, 'blue', alpha=0.75, label=setName[1], linewidth=3)
+        ax2.plot(ppm, offsetsm1M[randM, :].real, 'orange', alpha=0.75, label=setName[0], linewidth=3)
         ax2.get_yaxis().set_visible(False)
         ax2.invert_xaxis()
 
@@ -193,9 +192,9 @@ def plotAllModels(setName, ppm, offsetsCompRealN, offsetsMaN, offsetsCompTapperN
         ax3.set_xlabel('ppm')
         ax3.set_xlim(1.5, 5)
         ax3.plot(ppm, offsetsUncorrL[randS, :].real-7500000, 'black', alpha=0.75, label='Uncorr', linewidth=3)
-        ax3.plot(ppm, offsetsCompTapperL[randL, :].real+7500000, 'green', alpha=0.75, label=setName[2], linewidth=3)
-        ax3.plot(ppm, offsetsMaL[randL, :].real+15000000, 'blue', alpha=0.75, label=setName[1], linewidth=3)
-        ax3.plot(ppm, offsetsCompRealL[randL, :].real, 'orange', alpha=0.75, label=setName[0], linewidth=3)
+        ax3.plot(ppm, offsetsm3L[randL, :].real+7500000, 'green', alpha=0.75, label=setName[2], linewidth=3)
+        ax3.plot(ppm, offsetsm2L[randL, :].real+15000000, 'blue', alpha=0.75, label=setName[1], linewidth=3)
+        ax3.plot(ppm, offsetsm1L[randL, :].real, 'orange', alpha=0.75, label=setName[0], linewidth=3)
         ax3.get_yaxis().set_visible(False)
         ax3.invert_xaxis()
 
@@ -456,222 +455,3 @@ def plotQualityMetrics(setName, vivoPPM,
     axs[1,3].set_ylabel('SNR (GABA Peak)')
 
     plt.show()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# def plotQMetric(setName, ppm, noOffsets_M1, noOffsets_M2, noOffsets_M3,
-#                 smallOffsets_M1, smallOffsets_M2, smallOffsets_M3,
-#                 medOffsets_M1, medOffsets_M2, medOffsets_M3,
-#                 largeOffsets_M1, largeOffsets_M2, largeOffsets_M3):
-#
-#     # finish, start = np.where(ppm <= 3.15)[0][0], np.where(ppm >= 3.28)[0][-1] # inverted ppm
-#     start, finish = np.where(ppm <= 3.15)[0][-1], np.where(ppm >= 3.28)[0][0]
-#
-#     noOffsets_M1, noOffsets_M2, noOffsets_M3 = normRealTEMP(noOffsets_M1[:, start:finish]), normRealTEMP(noOffsets_M2[:, start:finish]), normRealTEMP(noOffsets_M3[:, start:finish])
-#     varNo_M1, varNo_M2, varNo_M3 = np.var(noOffsets_M1, axis=1), np.var(noOffsets_M2, axis=1), np.var(noOffsets_M3, axis=1)
-#
-#     smallOffsets_M1, smallOffsets_M2, smallOffsets_M3 = normRealTEMP(smallOffsets_M1[:, start:finish]), normRealTEMP(smallOffsets_M2[:, start:finish]), normRealTEMP(smallOffsets_M3[:, start:finish])
-#     varSmall_M1, varSmall_M2, varSmall_M3 = np.var(smallOffsets_M1, axis=1), np.var(smallOffsets_M2, axis=1), np.var(smallOffsets_M3, axis=1)
-#
-#     medOffsets_M1, medOffsets_M2, medOffsets_M3 = normRealTEMP(medOffsets_M1[:, start:finish]), normRealTEMP(medOffsets_M2[:, start:finish]), normRealTEMP(medOffsets_M3[:, start:finish])
-#     varMed_M1, varMed_M2, varMed_M3 = np.var(medOffsets_M1, axis=1), np.var(medOffsets_M2, axis=1), np.var(medOffsets_M3, axis=1)
-#
-#     largeOffsets_M1, largeOffsets_M2, largeOffsets_M3 = normRealTEMP(largeOffsets_M1[:, start:finish]), normRealTEMP(largeOffsets_M2[:, start:finish]), normRealTEMP(largeOffsets_M3[:, start:finish])
-#     varLarge_M1, varLarge_M2, varLarge_M3 = np.var(largeOffsets_M1, axis=1), np.var(largeOffsets_M2, axis=1), np.var(largeOffsets_M3, axis=1)
-#
-#     print(f'Lena of 1 is {len(smallOffsets_M1)}')
-#     print(f'Mean of small offsets 1 is {np.mean(smallOffsets_M1, axis=1)[0]}')
-#     print(f'Values of Mean of small offsets 1 is {smallOffsets_M1[0, :]}')
-#
-#
-#     fig11, (ax1, ax2) = plt.subplots(2)
-#     ax1.plot(smallOffsets_M1[0, :], 'orange')
-#     ax1.plot(smallOffsets_M2[0, :], 'blue')
-#     ax1.plot(smallOffsets_M3[0, :], 'green')
-#     ax2.plot(smallOffsets_M1[35, :], 'orange')
-#     ax2.plot(smallOffsets_M2[35, :], 'blue')
-#     ax2.plot(smallOffsets_M3[35, :], 'green')
-#     plt.show()
-#
-#     print(f'No Offsets variance: varNo_M1: {varNo_M1}')
-#     print(f'varNo_M2 - {varNo_M2}')
-#     print(f'varNo_M3 - {varNo_M3}')
-#     print(f'Small Offsets variance: varSmall_M1: {varSmall_M1}')
-#     print(f'varSmall_M2: {varSmall_M2}')
-#     print(f'varSmall_M3 - {varSmall_M3}')
-#     print(f'Med Offsets variance: varMed_M1: {varMed_M1}')
-#     print(f'varMed_M2: {varMed_M2}')
-#     print(f'varMed_M3: {varMed_M3}')
-#     print(f'Large Offsets variance: varLarge_M1: {varLarge_M1}')
-#     print(f'varLarge_M2: {varLarge_M2}')
-#     print(f'varLarge_M3: {varLarge_M3}')
-#
-#     qNo12, qNo13 = np.zeros(varSmall_M1.shape[0]), np.zeros(varSmall_M1.shape[0])
-#     qSmall12, qSmall13 = np.zeros(varSmall_M1.shape[0]), np.zeros(varSmall_M1.shape[0])
-#     qMed12, qMed13 = np.zeros(varSmall_M1.shape[0]), np.zeros(varSmall_M1.shape[0])
-#     qLarge12, qLarge13 = np.zeros(varSmall_M1.shape[0]), np.zeros(varSmall_M1.shape[0])
-#
-#     fig3, axs = plt.subplots(2, 4)
-#     fig3.suptitle("In Vivo Choline Artifact CV-CNN vs. CNN")
-#
-#     axs[0,0].set_title("No Additional Offsets")
-#     axs[0,0].set_xlabel('Scan')
-#     axs[0,0].set_ylabel('Q Value')
-#     axs[0,0].plot([-1, 37], [0.5, 0.5], "k--")
-#     axs[0,0].set_xlim(-1, 37)
-#
-#     axs[0,1].set_title("Small Additional Offsets")
-#     axs[0,1].set_xlabel('Scan')
-#     axs[0,1].set_ylabel('Q Value')
-#     axs[0,1].plot([-1, 37], [0.5, 0.5], "k--")
-#     axs[0,1].set_xlim(-1, 37)
-#
-#     axs[0,2].set_title("Medium Additional Offsets")
-#     axs[0,2].set_xlabel('Scan')
-#     axs[0,2].set_ylabel('Q Value')
-#     axs[0,2].plot([-1, 37], [0.5, 0.5], "k--")
-#     axs[0,2].set_xlim(-1, 37)
-#
-#     axs[0,3].set_title("Large Additional Offsets")
-#     axs[0,3].set_xlabel('Scan')
-#     axs[0,3].set_ylabel('Q Value')
-#     axs[0,3].plot([-1, 37], [0.5, 0.5], "k--")
-#     axs[0,3].set_xlim(-1, 37)
-#
-#     axs[1,0].set_title("No Additional Offsets")
-#     axs[1,0].set_xlabel('Scan')
-#     axs[1,0].set_ylabel('Q Value')
-#     axs[1,0].plot([-1, 37], [0.5, 0.5], "k--")
-#     axs[1,0].set_xlim(-1, 37)
-#
-#     axs[1,1].set_title("Small Additional Offsets")
-#     axs[1,1].set_xlabel('Scan')
-#     axs[1,1].set_ylabel('Q Value')
-#     axs[1,1].plot([-1, 37], [0.5, 0.5], "k--")
-#     axs[1,1].set_xlim(-1, 37)
-#
-#     axs[1,2].set_title("Medium Additional Offsets")
-#     axs[1,2].set_xlabel('Scan')
-#     axs[1,2].set_ylabel('Q Value')
-#     axs[1,2].plot([-1, 37], [0.5, 0.5], "k--")
-#     axs[1,2].set_xlim(-1, 37)
-#
-#     axs[1,3].set_title("Large Additional Offsets")
-#     axs[1,3].set_xlabel('Scan')
-#     axs[1,3].set_ylabel('Q Value')
-#     axs[1,3].plot([-1, 37], [0.5, 0.5], "k--")
-#     axs[1,3].set_xlim(-1, 37)
-#
-#     legend_elements12 = [Line2D([0], [0], marker='o', color='w', label=f'{setName[0]} > {setName[1]}',
-#                               markerfacecolor='blue', markersize=15),
-#                        Line2D([0], [0], marker='o', color='w', label=f'{setName[0]} < {setName[1]}',
-#                               markerfacecolor='red', markersize=15)]
-#     legend_elements13 = [Line2D([0], [0], marker='o', color='w', label=f'{setName[0]} > {setName[2]}',
-#                               markerfacecolor='blue', markersize=15),
-#                        Line2D([0], [0], marker='o', color='w', label=f'{setName[0]} < {setName[2]}',
-#                               markerfacecolor='red', markersize=15)]
-#     axs[0,0].legend(handles=legend_elements12, loc='upper left')
-#     axs[0,1].legend(handles=legend_elements12, loc='upper left')
-#     axs[0,2].legend(handles=legend_elements12, loc='upper left')
-#     axs[0,3].legend(handles=legend_elements12, loc='upper left')
-#     axs[1,0].legend(handles=legend_elements13, loc='upper left')
-#     axs[1,1].legend(handles=legend_elements13, loc='upper left')
-#     axs[1,2].legend(handles=legend_elements13, loc='upper left')
-#     axs[1,3].legend(handles=legend_elements13, loc='upper left')
-#
-#     for i in range(0, varSmall_M1.shape[0]):
-#         # shouldn't have to use abs()
-#         # qNo12[i] = np.abs((1 - varNo_M1[i]) / (varNo_M1[i] + varNo_M2[i]))
-#         # qSmall12[i] = np.abs((1 - varSmall_M1[i]) / (varSmall_M1[i] + varSmall_M2[i]))
-#         # qMed12[i] = np.abs((1 - varMed_M1[i]) / (varMed_M1[i] + varMed_M2[i]))
-#         # qLarge12[i] = np.abs((1 - varLarge_M1[i]) / (varLarge_M1[i] + varLarge_M2[i]))
-#         #
-#         # qNo13[i] = np.abs((1 - varNo_M1[i]) / (varNo_M1[i] + varNo_M3[i]))
-#         # qSmall13[i] = np.abs((1 - varSmall_M1[i]) / (varSmall_M1[i] + varSmall_M3[i]))
-#         # qMed13[i] = np.abs((1 - varMed_M1[i]) / (varMed_M1[i] + varMed_M3[i]))
-#         # qLarge13[i] = np.abs((1 - varLarge_M1[i]) / (varLarge_M1[i] + varLarge_M3[i]))
-#         qNo12[i] = np.abs((varNo_M1[i]) / (varNo_M1[i] + varNo_M2[i]))
-#         qSmall12[i] = np.abs((varSmall_M1[i]) / (varSmall_M1[i] + varSmall_M2[i]))
-#         qMed12[i] = np.abs((varMed_M1[i]) / (varMed_M1[i] + varMed_M2[i]))
-#         qLarge12[i] = np.abs((varLarge_M1[i]) / (varLarge_M1[i] + varLarge_M2[i]))
-#
-#         qNo13[i] = np.abs((varNo_M1[i]) / (varNo_M1[i] + varNo_M3[i]))
-#         qSmall13[i] = np.abs((varSmall_M1[i]) / (varSmall_M1[i] + varSmall_M3[i]))
-#         qMed13[i] = np.abs((varMed_M1[i]) / (varMed_M1[i] + varMed_M3[i]))
-#         qLarge13[i] = np.abs((varLarge_M1[i]) / (varLarge_M1[i] + varLarge_M3[i]))
-#
-#         if (qNo12[i] >= 0.5):
-#             axs[0, 0].plot(i, qNo12[i], marker="o", markersize=5, markeredgecolor="blue", markerfacecolor="blue",
-#                            label='CR-CNN > CNN')
-#         else:
-#             axs[0, 0].plot(i, qNo12[i], marker="o", markersize=5, markeredgecolor="red", markerfacecolor="red",
-#                            label='CR-CNN < CNN')
-#         if (qSmall12[i] >= 0.5):
-#             axs[0,1].plot(i, qSmall12[i], marker="o", markersize=5, markeredgecolor="blue", markerfacecolor="blue", label='CR-CNN > CNN')
-#         else:
-#             axs[0,1].plot(i, qSmall12[i], marker="o", markersize=5, markeredgecolor="red", markerfacecolor="red", label='CR-CNN < CNN')
-#
-#         if (qMed12[i] >= 0.5):
-#             axs[0,2].plot(i, qMed12[i], marker="o", markersize=5, markeredgecolor="blue", markerfacecolor="blue", label='CR-CNN > CNN')
-#         else:
-#             axs[0,2].plot(i, qMed12[i], marker="o", markersize=5, markeredgecolor="red", markerfacecolor="red", label='CR-CNN < CNN')
-#
-#         if (qLarge12[i] >= 0.5):
-#             axs[0,3].plot(i, qLarge12[i], marker="o", markersize=5, markeredgecolor="blue", markerfacecolor="blue", label='CR-CNN > CNN')
-#         else:
-#             axs[0,3].plot(i, qLarge12[i], marker="o", markersize=5, markeredgecolor="red", markerfacecolor="red", label='CR-CNN < CNN')
-#
-#         if (qNo13[i] >= 0.5):
-#             axs[1, 0].plot(i, qNo13[i], marker="o", markersize=5, markeredgecolor="blue", markerfacecolor="blue",
-#                            label='CR-CNN > CNN')
-#         else:
-#             axs[1, 0].plot(i, qNo13[i], marker="o", markersize=5, markeredgecolor="red", markerfacecolor="red",
-#                            label='CR-CNN < CNN')
-#         if (qSmall13[i] >= 0.5):
-#             axs[1,1].plot(i, qSmall13[i], marker="o", markersize=5, markeredgecolor="blue", markerfacecolor="blue", label='CR-CNN > MLP')
-#         else:
-#             axs[1,1].plot(i, qSmall13[i], marker="o", markersize=5, markeredgecolor="red", markerfacecolor="red", label='CR-CNN < MLP')
-#
-#         if (qMed13[i] >= 0.5):
-#             axs[1,2].plot(i, qMed13[i], marker="o", markersize=5, markeredgecolor="blue", markerfacecolor="blue", label='CR-CNN > MLP')
-#         else:
-#             axs[1,2].plot(i, qMed13[i], marker="o", markersize=5, markeredgecolor="red", markerfacecolor="red", label='CR-CNN < MLP')
-#
-#         if (qLarge13[i] >= 0.5):
-#             axs[1,3].plot(i, qLarge13[i], marker="o", markersize=5, markeredgecolor="blue", markerfacecolor="blue", label='CR-CNN > MLP')
-#         else:
-#             axs[1,3].plot(i, qLarge13[i], marker="o", markersize=5, markeredgecolor="red", markerfacecolor="red", label='CR-CNN < MLP')
-#
-#     avQN12, stdQN12 = np.mean(qNo12), np.std(qNo12)
-#     avQS12, stdQS12 = np.mean(qSmall12), np.std(qSmall12)
-#     avQM12, stdQM12 = np.mean(qMed12), np.std(qMed12)
-#     avQL12, stdQL12 = np.mean(qLarge12), np.std(qLarge12)
-#     axs[0,0].text(10, np.min(qNo12), f"E[Q] = {round(avQN12, 2)} +/- {round(stdQN12, 2)}")
-#     axs[0,1].text(10, np.min(qSmall12), f"E[Q] = {round(avQS12, 2)} +/- {round(stdQS12, 2)}")
-#     axs[0,2].text(10, np.min(qMed12), f"E[Q] = {round(avQM12, 2)} +/- {round(stdQM12, 2)}")
-#     axs[0,3].text(10, np.min(qLarge12), f"E[Q] = {round(avQL12, 2)} +/- {round(stdQL12, 2)}")
-#
-#     avQN13, stdQN13 = np.mean(qNo13), np.std(qNo13)
-#     avQS13, stdQS13 = np.mean(qSmall13), np.std(qSmall13)
-#     avQM13, stdQM13 = np.mean(qMed13), np.std(qMed13)
-#     avQL13, stdQL13 = np.mean(qLarge13), np.std(qLarge13)
-#     axs[1,0].text(10, np.min(qNo13), f"E[Q] = {round(avQN13, 2)} +/- {round(stdQN13, 2)}")
-#     axs[1,1].text(10, np.min(qSmall13), f"E[Q] = {round(avQS13, 2)} +/- {round(stdQS13, 2)}")
-#     axs[1,2].text(10, np.min(qMed13), f"E[Q] = {round(avQM13, 2)} +/- {round(stdQM13, 2)}")
-#     axs[1,3].text(10, np.min(qLarge13), f"E[Q] = {round(avQL13, 2)} +/- {round(stdQL13, 2)}")
-#
-#     plt.show()

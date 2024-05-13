@@ -16,7 +16,7 @@ time = np.load(f"{simDir}GTs/time_Sim.npy")
 snrTypes = ["2_5", "5", "10"]
 waterTypes = ["Pos", "Mix", "None"]
 netTypes = ["freq", "phase"]
-simModels = ["compReal", "compComp", "realReal", "Ma_4Convs", "Tapper"]
+simModels = ["compReal", "compComp", "realReal", "CNN", "MLP"]
 
 for water in waterTypes:
     indW = waterTypes.index(water)
@@ -69,7 +69,7 @@ for water in waterTypes:
 ########################################################################################################################
 # In Vivo Data
 ########################################################################################################################
-vivoModels = ["compComp", "Ma_4Convs", "Tapper"]
+vivoModels = ["compComp", "CNN", "MLP"]
 size=["Small", "Med", "Large", "None"]
 vivoDir = "C:/Users/Hanna B/Desktop/FPCFinal2024/Data/InVivo/"
 
@@ -301,7 +301,7 @@ plotQualityMetrics(["CC-CNN", "CNN", "MLP"], ppmV,
 ########################################################################################################################
 # ADDITIONAL CODE FOR NUMPY CONVERSION
 ########################################################################################################################
-# vivoModels = ["compComp", "Ma_4Convs", "Tapper"]
+# vivoModels = ["compComp", "CNN", "MLP"]
 # size=["Small", "Medium", "Large", "None"]       #med for new set
 # vivoDir = "C:/Users/Hanna B/Desktop/FPCFinal2024/NumpyData/InVivo/"
 #
