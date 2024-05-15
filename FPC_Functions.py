@@ -1,3 +1,9 @@
+# Based on the publication
+# "Frequency and phase correction of GABA-edited magnetic resonance spectroscopy using complex-valued convolutional neural networks"
+# (doi: 10.1016/j.mri.2024.05.008) by Hanna Bugler, Rodrigo Berto, Roberto Souza and Ashley Harris (2024)
+
+# Functions to assist with ComplexCNN-FPC
+
 import numpy as np
 import math
 from random import shuffle

@@ -1,3 +1,7 @@
+# Based on the publication
+# "Frequency and phase correction of GABA-edited magnetic resonance spectroscopy using complex-valued convolutional neural networks"
+# (doi: 10.1016/j.mri.2024.05.008) by Hanna Bugler, Rodrigo Berto, Roberto Souza and Ashley Harris (2024)
+
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
@@ -53,11 +57,11 @@ def previewData(vivoPPM, vivoSpecsONN, vivoSpecsOFFN, vivoSpecsONS, vivoSpecsOFF
         ax111.plot(vivoPPM, m1_specsSmall_Mscans[iii, :].real-2000, 'black')
         ax111.plot(vivoPPM, m1_specsMed_Mscans[iii, :].real, 'purple')
         ax111.plot(vivoPPM, m1_specsLarge_Mscans[iii, :].real+2000, 'red')
-        ax222.set_title("Ma Corrections")
+        ax222.set_title("CNN Corrections")
         ax222.plot(vivoPPM, m2_specsSmall_Mscans[iii, :].real-2000, 'black')
         ax222.plot(vivoPPM, m2_specsMed_Mscans[iii, :].real, 'purple')
         ax222.plot(vivoPPM, m2_specsLarge_Mscans[iii, :].real+2000, 'red')
-        ax333.set_title("Tapper Corrections")
+        ax333.set_title("MLP Corrections")
         ax333.plot(vivoPPM, m3_specsSmall_Mscans[iii, :].real-2000, 'black')
         ax333.plot(vivoPPM, m3_specsMed_Mscans[iii, :].real, 'purple')
         ax333.plot(vivoPPM, m3_specsLarge_Mscans[iii, :].real+2000, 'red')

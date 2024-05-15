@@ -1,4 +1,7 @@
-# FPC Winter 2024
+# Based on the publication
+# "Frequency and phase correction of GABA-edited magnetic resonance spectroscopy using complex-valued convolutional neural networks"
+# (doi: 10.1016/j.mri.2024.05.008) by Hanna Bugler, Rodrigo Berto, Roberto Souza and Ashley Harris (2024)
+
 import argparse
 import numpy as np
 import torch
@@ -15,6 +18,7 @@ from modelsFPC import CNN_Model, MLP_Model, compIn_compConv, compIn_realConv, re
 # SIMULATED TRAINING/TESTING USER ARGUMENTS
 ########################################################################################################################
 simParser = argparse.ArgumentParser()
+simParser.add_argument("simDir", type=str, default="C:/Users/", nargs='?', help="Location of simulated data")
 simParser.add_argument("nmb_epochs", type=int, default=200, nargs='?', help="Number of epochs for training")
 simParser.add_argument("batch_size", type=int, default=64, nargs='?', help="Batch size")
 simParser.add_argument("learn_r", type=float, default=0.001, nargs='?', help="Learning rate")
@@ -28,7 +32,7 @@ simParser = simParser.parse_args()
 ########################################################################################################################
 # VARIABLE SET-UP
 ########################################################################################################################
-simDir = "C:/Users/Hanna B/Desktop/FPCFinal2024/Data/Simulated/"
+simDir = simParser.simDir
 ppm = np.load(f"{simDir}GTs/ppm_Sim.npy")
 t = np.load(f"{simDir}GTs/time_Sim.npy")
 
@@ -284,14 +288,16 @@ for water in simParser.waterTypes:
 ########################################################################################################################
 ########################################################################################################################
 vivoParser = argparse.ArgumentParser()
+vivoParser.add_argument("vivoDir", type=str, default="C:/Users/", nargs='?', help="Location of in vivo data")
 vivoParser.add_argument("batch_size", type=int, default=64, nargs='?', help="Batch size")
 vivoParser.add_argument("-addVivoModel", '--vivoModelTypes', action='append', default=['compComp', 'MLP', 'CNN', 'compReal'], nargs='*', help='Model types: MLP, CNN, compComp')
 vivoParser.add_argument("-addOffsetSize", '--offsetSize', action='append', default=['None', 'Small', 'Med', 'Large'], nargs='*', help='Offset sizes: None, Small, Med, Large')
 vivoParser.add_argument("-addNet", '--netTypes', action='append', default=['freq', 'phase'], nargs='*', help='Net types: freq, phase')
 vivoParser = vivoParser.parse_args()
 
-t_inVivo = np.load(f"C:/Users/Hanna B/Desktop/FPCFinal2024/Data/InVivo/GTs/time_InVivo.npy")
-ppmVivo = np.load(f"C:/Users/Hanna B/Desktop/FPCFinal2024/Data/InVivo/GTs/ppm_InVivo.npy")
+vivoDir = vivoParser.vivoDir
+t_inVivo = np.load(f"{vivoDir}time_InVivo.npy")
+ppmVivo = np.load(f"{vivoDir}ppm_InVivo.npy")
 
 # hyperparameters
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -399,7 +405,7 @@ for model_name in vivoParser.vivoModelTypes:
             # Testing Loop parameter set-up
             epoch_lossesTest, predTestLabels = [], np.zeros((testPhaseLabels.shape[1]))
             lowestLoss, highestLoss, indV = 100000, 0, 0
-            model.load_state_dict(torch.load(f"C:/Users/Hanna B/PycharmProjects/FPC_2024/{modelLoadName}.pt"))
+            model.load_state_dict(torch.load(f"{simDir}{modelLoadName}.pt"))
             model.eval()
 
             with torch.no_grad():
